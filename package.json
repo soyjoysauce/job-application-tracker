@@ -22,7 +22,8 @@
     "db:start": "supabase start -x realtime,storage-api,imgproxy,edge-runtime,logflare,vector,supavisor,mailpit",
     "db:stop": "supabase stop",
     "db:reset": "supabase db reset",
-    "db:test": "supabase test db"
+    "db:test": "supabase test db",
+    "db:types": "supabase gen types --local --schema public > server/src/types/database.types.ts"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

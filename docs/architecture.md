@@ -59,10 +59,46 @@ sequenceDiagram
 5. RLS policies use `auth.uid()` to limit rows to that user.
 
 **In code:**
+
 - `server/src/middleware/auth.middleware.ts`: `requireAuth`, `getAuth`
 - `server/src/lib/supabase.ts`: `getAuthClient`, `createUserClient`, `createAdminClient`
 - `server/src/types/express.d.ts`: the `req.auth` type
 - `GET /api/me` is the smallest protected route and returns the verified user's id and email.
+
+## API endpoints
+
+All routes are under `/api`. Everything except `/health` requires `Authorization: Bearer <token>`. Request and response types live in `shared/`.
+
+| Method | Path                | Body / query                                 | Success                                                 |
+| ------ | ------------------- | -------------------------------------------- | ------------------------------------------------------- |
+| GET    | `/health`           |                                              | 200 `{ status, timestamp }`                             |
+| GET    | `/me`               |                                              | 200 `{ id, email }`                                     |
+| GET    | `/profile`          |                                              | 200 `Profile` (empty lists if never saved)              |
+| PUT    | `/profile`          | `{ skills, stack }`                          | 200 `Profile`                                           |
+| GET    | `/postings`         |                                              | 200 `JobPostingSummary[]` (newest first)                |
+| POST   | `/postings`         | `{ rawText }`                                | 201 `JobPosting` (`analysisStatus: 'pending'`)          |
+| GET    | `/postings/:id`     |                                              | 200 `JobPosting`                                        |
+| DELETE | `/postings/:id`     |                                              | 204 (also deletes its application)                      |
+| GET    | `/applications`     | `?status=` (optional)                        | 200 `ApplicationWithPosting[]` (recently updated first) |
+| POST   | `/applications`     | `{ postingId, status?, notes?, appliedAt? }` | 201 `ApplicationWithPosting`                            |
+| GET    | `/applications/:id` |                                              | 200 `ApplicationWithPosting`                            |
+| PATCH  | `/applications/:id` | any of `{ status, notes, appliedAt }`        | 200 `ApplicationWithPosting`                            |
+| DELETE | `/applications/:id` |                                              | 204                                                     |
+
+**Errors** use the shared shape `{ error: { code, message, details? } }`:
+
+| Status | Code                | When                                                                                                                            |
+| ------ | ------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| 400    | `VALIDATION_ERROR`  | Input fails a zod schema. `details` is a list of `{ path, message }`. Unknown fields such as `userId` are rejected.             |
+| 400    | `BAD_REQUEST`       | Malformed JSON, or a value the database rejects                                                                                 |
+| 401    | `UNAUTHORIZED`      | Missing or invalid token                                                                                                        |
+| 403    | `FORBIDDEN`         | RLS rejected a write                                                                                                            |
+| 404    | `NOT_FOUND`         | Unknown route, or a resource that doesn't exist **or belongs to another user**. The two cases are indistinguishable on purpose. |
+| 409    | `CONFLICT`          | The posting already has an application                                                                                          |
+| 413    | `PAYLOAD_TOO_LARGE` | Body over 100kb                                                                                                                 |
+| 500    | `INTERNAL_ERROR`    | Anything unexpected (logged on the server)                                                                                      |
+
+Postings have no update endpoint (ADR-009). Their analysis fields are written only by the analyzer (step 8).
 
 ## Architecture rules
 
@@ -76,7 +112,7 @@ sequenceDiagram
    - Controllers: parse and validate input with zod, call services, shape the HTTP response.
    - Services: business logic, database calls, and Claude calls. No `req`/`res`.
    - All input is validated with zod. One central error middleware returns `{ error: { code, message, details? } }`.
-4. **Rate-limit state lives in the database** (`usage_counters`), never in memory, because Vercel runs multiple function instances that don't share memory. Users can only *read* their counters. Increments go through the `increment_usage()` Postgres function (ADR-006).
+4. **Rate-limit state lives in the database** (`usage_counters`), never in memory, because Vercel runs multiple function instances that don't share memory. Users can only _read_ their counters. Increments go through the `increment_usage()` Postgres function (ADR-006).
 5. **HTTP hardening.** CORS allows only `CLIENT_ORIGIN`. `helmet` is on. JSON bodies are capped (`100kb`). Environment variables are validated with zod at startup (`server/src/config/env.ts`), and the process fails fast if they're invalid.
 6. **Claude output is untrusted.** Validate it with the shared zod schema before saving. On failure, retry **once**. If it fails again, set `analysis_status = 'failed'`.
 

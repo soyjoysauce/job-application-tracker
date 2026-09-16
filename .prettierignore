@@ -5,3 +5,4 @@ coverage/
 .vercel/
 package-lock.json
 supabase/migrations/
+server/src/types/database.types.ts

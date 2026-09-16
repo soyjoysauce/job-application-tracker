@@ -15,6 +15,7 @@ Build order: [docs/roadmap.md](docs/roadmap.md). Background: [docs/architecture.
 ## Working rule: the owner must be able to explain all code
 
 The project owner must be able to explain every line of generated code. For **every change**:
+
 - Summarize what changed **per file** (file path → what and why), in plain language.
 - Point out any new concept, library, or pattern and explain it briefly.
 - Prefer simple, readable code over clever code. Don't add features or abstractions beyond the current roadmap step.
@@ -61,6 +62,7 @@ supabase/migrations/  timestamped SQL files
 ```
 
 Conventions:
+
 - **Server imports use `.js` extensions** for relative paths (`import { x } from './foo.js'`), which `NodeNext` module resolution requires.
 - **Don't create `server/src/index.ts` or `server/src/server.ts`.** Vercel auto-detects those names, and `src/app.ts` must stay the only entry.
 - Throw `HttpError(status, code, message)` for expected errors, and let the error middleware format them. Express 5 forwards errors thrown in async handlers automatically, so no try/catch wrappers are needed.
@@ -70,6 +72,17 @@ Conventions:
   - Pass that `supabase` client into services for all user data queries.
   - Never read a user id from the body, params, or query.
 - **Validation:** in controllers, use `parseBody(schema, req)`, `parseParams(schema, req)` and `parseQuery(schema, req)` from `lib/validate.ts`. Shared request/response schemas live in `shared/`.
+  - Body schemas use `z.strictObject`, so unknown fields (like `userId`) are rejected.
+  - IDs use `idSchema` (`z.guid()`).
+- **Services:**
+  - Signature: `(db: Db, userId: string, ...inputs)`. `db` is the per-request client from `getAuth`.
+  - Filter with `.eq('user_id', userId)` even though RLS also enforces it.
+  - Convert database rows (snake_case) to shared API types (camelCase) inside the service.
+  - Throw `toHttpError(error)` for Supabase errors and `notFound('Thing')` for missing rows.
+  - For update/delete, add `.select()` and treat 0 rows as 404: RLS hides other users' rows without raising an error.
+  - Return 404, never 403, for another user's resource, so its existence isn't revealed.
+- **DB types:** `server/src/types/database.types.ts` is generated. After every migration, run `npm run db:types` (with the local stack running), and never edit that file by hand.
+- **Postings are read-only** (ADR-009). Don't add an update endpoint unless asked.
 - `shared/` is built to `dist/`. Rebuild it (or keep `npm run dev` running) after changing schemas.
 - Every new table follows the migration rules:
   - `user_id` → `auth.users` on delete cascade
@@ -92,9 +105,11 @@ npm run db:start     # local Supabase in Docker (applies migrations)
 npm run db:test      # pgTAP tests in supabase/tests/database/
 npm run db:reset     # rebuild local DB from migrations
 npm run db:stop      # stop local Supabase
+npm run db:types     # regenerate server/src/types/database.types.ts from the local DB
 ```
 
 Database rules:
+
 - Never edit a migration that's already been pushed to the hosted project. Add a new one with `npx supabase migration new <name>`.
 - Every schema change comes with pgTAP tests. `npm run db:test` must pass.
 - Never run `supabase db push` or `supabase link` yourself. The owner runs them.
