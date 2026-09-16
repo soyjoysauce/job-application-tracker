@@ -23,7 +23,15 @@ export function errorMiddleware(
 
   if (err instanceof ZodError) {
     res.status(400).json({
-      error: { code: 'VALIDATION_ERROR', message: 'Invalid request', details: err.issues },
+      error: {
+        code: 'VALIDATION_ERROR',
+        message: 'Invalid request',
+        // Only field path + message; never echo the submitted values back.
+        details: err.issues.map((issue) => ({
+          path: issue.path.map(String).join('.'),
+          message: issue.message,
+        })),
+      },
     });
     return;
   }
@@ -31,7 +39,10 @@ export function errorMiddleware(
   // body-parser errors (e.g. payload too large, malformed JSON) carry a status.
   if (isClientErrorWithStatus(err)) {
     res.status(err.status).json({
-      error: { code: 'BAD_REQUEST', message: err.message },
+      error: {
+        code: err.status === 413 ? 'PAYLOAD_TOO_LARGE' : 'BAD_REQUEST',
+        message: err.message,
+      },
     });
     return;
   }

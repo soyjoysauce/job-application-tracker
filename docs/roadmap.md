@@ -12,10 +12,16 @@ Build in this order. Each step should leave the app building, type-checking, and
   - deletion cascading from `auth.users`.
 - Apply to the hosted project with `supabase link` + `supabase db push` (see README → Database).
 
-## 2. Express foundation + auth middleware
-- Implement `requireAuth` (Bearer token → verify with Supabase → 401 on failure).
-- Implement `createUserClient(token)` and the `Express.Request` augmentation.
-- Add zod validation helpers for body, params, and query.
+## 2. Express foundation + auth middleware ✅
+- `requireAuth`: Bearer token → `auth.getClaims` → 401 on failure; sets `req.auth` (ADR-008).
+- `createUserClient(token)`, `getAuthClient()`, the `req.auth` type, and the `getAuth(req)` helper.
+- zod helpers `parseBody` / `parseParams` / `parseQuery` (`server/src/lib/validate.ts`). Validation errors return `details: [{ path, message }]`.
+- `GET /api/me` as the first protected route.
+- Verified manually against the local stack:
+  - 401 for a missing header, wrong scheme, garbage token, forged signature, or the anon key sent as a token;
+  - 200 for real users; 400 for malformed JSON; 413 (`PAYLOAD_TOO_LARGE`) for oversized bodies; the CORS origin is set;
+  - the per-request client respects RLS and can call `increment_usage()`.
+- Automated versions of these checks come in step 9.
 
 ## 3. CRUD endpoints
 - Profile (get/upsert), postings (create/list/get/delete), applications (CRUD), all through routes → controllers → services.

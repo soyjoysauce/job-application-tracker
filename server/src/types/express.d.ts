@@ -1,16 +1,19 @@
-// Express Request augmentation. STUB — filled in with the auth middleware (roadmap step 2).
-//
-// TODO(step 2): uncomment and adjust once requireAuth attaches these.
-//
-// import type { SupabaseClient, User } from '@supabase/supabase-js';
-//
-// declare global {
-//   namespace Express {
-//     interface Request {
-//       user?: User;
-//       supabase?: SupabaseClient;
-//     }
-//   }
-// }
+// Adds `req.auth` to Express's Request type. Set by requireAuth (middleware/auth.middleware.ts).
+import type { SupabaseClient } from '@supabase/supabase-js';
 
-export {};
+export interface AuthContext {
+  /** The signed-in user's id (the token's `sub` claim, same as auth.uid() in SQL). */
+  userId: string;
+  email: string | undefined;
+  /** Per-request Supabase client that queries as this user (RLS applies). */
+  supabase: SupabaseClient;
+}
+
+declare global {
+  namespace Express {
+    interface Request {
+      /** Only present on routes behind requireAuth. Read it with getAuth(req). */
+      auth?: AuthContext;
+    }
+  }
+}

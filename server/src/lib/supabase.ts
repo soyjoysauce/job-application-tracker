@@ -1,17 +1,39 @@
-// Supabase client factories. STUBS — implemented in roadmap steps 2 and 4.
-import type { SupabaseClient } from '@supabase/supabase-js';
+// Supabase client factories.
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+
+import { env } from '../config/env.js';
+
+// Server-side clients never store sessions or refresh tokens: every request brings its own token.
+const serverAuthOptions = {
+  persistSession: false,
+  autoRefreshToken: false,
+  detectSessionInUrl: false,
+} as const;
+
+let authClient: SupabaseClient | undefined;
+
+/**
+ * Shared client used only to verify access tokens (`auth.getClaims(token)`).
+ * Created once per server instance so the project's signing keys stay cached between requests.
+ * Never use it for data queries — it has no user attached.
+ */
+export function getAuthClient(): SupabaseClient {
+  authClient ??= createClient(env.SUPABASE_URL, env.SUPABASE_ANON_KEY, {
+    auth: serverAuthOptions,
+  });
+  return authClient;
+}
 
 /**
  * Per-request client: anon/publishable key + the user's access token.
  * All queries run as that user, so RLS (auth.uid()) applies.
  * Create a new one for every request — never share between users.
  */
-export function createUserClient(_accessToken: string): SupabaseClient {
-  // TODO(step 2): createClient(env.SUPABASE_URL, env.SUPABASE_ANON_KEY, {
-  //   global: { headers: { Authorization: `Bearer ${accessToken}` } },
-  //   auth: { persistSession: false, autoRefreshToken: false },
-  // })
-  throw new Error('Not implemented — see docs/roadmap.md step 2');
+export function createUserClient(accessToken: string): SupabaseClient {
+  return createClient(env.SUPABASE_URL, env.SUPABASE_ANON_KEY, {
+    global: { headers: { Authorization: `Bearer ${accessToken}` } },
+    auth: serverAuthOptions,
+  });
 }
 
 /**
@@ -19,6 +41,6 @@ export function createUserClient(_accessToken: string): SupabaseClient {
  * Use ONLY for admin operations (account deletion). Never expose to the client.
  */
 export function createAdminClient(): SupabaseClient {
-  // TODO(step 4): createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } })
+  // TODO(step 4): createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, { auth: serverAuthOptions })
   throw new Error('Not implemented — see docs/roadmap.md step 4');
 }

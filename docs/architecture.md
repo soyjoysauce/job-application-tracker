@@ -41,7 +41,7 @@ sequenceDiagram
     R->>SA: signInWithPassword / signUp
     SA-->>R: session (access token JWT)
     R->>E: request + Authorization: Bearer <token>
-    E->>SA: verify token
+    E->>SA: auth.getClaims(token) (signing keys, cached)
     alt invalid or missing
         E-->>R: 401 { error }
     else valid
@@ -54,9 +54,15 @@ sequenceDiagram
 
 1. React signs in with Supabase Auth and receives an access token (JWT).
 2. React sends `Authorization: Bearer <token>` to Express.
-3. Express middleware (`requireAuth`) verifies the token with Supabase and returns **401** if it's invalid.
-4. Express creates a **per-request** Supabase client from the anon/publishable key plus the user's token.
+3. Express middleware (`requireAuth`) verifies the token with Supabase (`auth.getClaims`, ADR-008) and returns **401** if the token is missing, malformed, badly signed, expired, or not a signed-in user's token (`role` must be `authenticated`).
+4. Express creates a **per-request** Supabase client from the anon/publishable key plus the user's token, and stores it with the user id on `req.auth`. Controllers read it with `getAuth(req)`.
 5. RLS policies use `auth.uid()` to limit rows to that user.
+
+**In code:**
+- `server/src/middleware/auth.middleware.ts`: `requireAuth`, `getAuth`
+- `server/src/lib/supabase.ts`: `getAuthClient`, `createUserClient`, `createAdminClient`
+- `server/src/types/express.d.ts`: the `req.auth` type
+- `GET /api/me` is the smallest protected route and returns the verified user's id and email.
 
 ## Architecture rules
 

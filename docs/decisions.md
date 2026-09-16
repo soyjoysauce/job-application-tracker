@@ -113,6 +113,25 @@ Short records of key decisions. Add a new entry when a decision changes. Don't r
 
 ---
 
+## ADR-008: Verify access tokens with `auth.getClaims()`
+
+**Status:** Accepted
+
+**Context:** Express must verify every Supabase access token. `supabase-js` offers two ways:
+- **`auth.getClaims(token)`**: checks the token's signature and expiry against the project's public signing keys (JWKS). The keys are cached, so with asymmetric signing keys there's usually no network call per request. With a legacy shared-secret (symmetric) key, it falls back to asking the Auth server. Supabase recommends this method.
+- **`auth.getUser(token)`**: asks the Auth server on every request, which also confirms the user still exists.
+
+**Decision:** Use `getClaims(token)` through one shared "auth client" per server instance (`getAuthClient()`), so the cached keys survive between requests on a warm Vercel instance. Also require `sub` to be present and `role === 'authenticated'`, which rejects project keys (like the anon key) sent as a user token.
+
+**Consequences:**
+- Faster requests, and less load on the Auth server.
+- A token stays valid until it expires (default 1 hour), even after the user signs out or the account is deleted. That's acceptable here:
+  - after deletion, RLS finds no rows, and inserts fail the `auth.users` foreign key;
+  - sign-out-everywhere isn't a feature.
+- If instant revocation is ever needed, switching to `getUser(token)` is a one-line change in `requireAuth`.
+
+---
+
 ## ADR-007: Postpone the per-posting chatbot
 
 **Status:** Accepted

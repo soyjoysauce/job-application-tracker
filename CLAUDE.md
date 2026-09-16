@@ -53,7 +53,7 @@ server/src/
   controllers/  *.controller.ts: validate input, call services, send response
   services/     *.service.ts: business logic, DB and Claude calls (no req/res)
   middleware/   *.middleware.ts: auth, errors, 404, rate limit
-  lib/          client factories (supabase.ts, anthropic.ts), HttpError
+  lib/          client factories (supabase.ts, anthropic.ts), HttpError, validate.ts (zod helpers)
   types/        type augmentations (express.d.ts)
 
 shared/src/     zod schemas + inferred types (import as `@jat/shared`)
@@ -63,7 +63,13 @@ supabase/migrations/  timestamped SQL files
 Conventions:
 - **Server imports use `.js` extensions** for relative paths (`import { x } from './foo.js'`), which `NodeNext` module resolution requires.
 - **Don't create `server/src/index.ts` or `server/src/server.ts`.** Vercel auto-detects those names, and `src/app.ts` must stay the only entry.
-- Throw `HttpError(status, code, message)` for expected errors, and let the error middleware format them.
+- Throw `HttpError(status, code, message)` for expected errors, and let the error middleware format them. Express 5 forwards errors thrown in async handlers automatically, so no try/catch wrappers are needed.
+- **Auth:**
+  - Mount authenticated routers in `routes/index.ts` as `apiRouter.use('/x', requireAuth, xRouter)`.
+  - In controllers, get the user and their Supabase client with `const { userId, supabase } = getAuth(req)`.
+  - Pass that `supabase` client into services for all user data queries.
+  - Never read a user id from the body, params, or query.
+- **Validation:** in controllers, use `parseBody(schema, req)`, `parseParams(schema, req)` and `parseQuery(schema, req)` from `lib/validate.ts`. Shared request/response schemas live in `shared/`.
 - `shared/` is built to `dist/`. Rebuild it (or keep `npm run dev` running) after changing schemas.
 - Every new table follows the migration rules:
   - `user_id` → `auth.users` on delete cascade
