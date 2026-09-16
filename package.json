@@ -1,0 +1,36 @@
+{
+  "name": "job-application-tracker",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Personal job application tracker and analyzer (React + Express + Supabase + Claude).",
+  "type": "module",
+  "workspaces": [
+    "shared",
+    "server",
+    "client"
+  ],
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "dev": "npm run build -w @jat/shared && concurrently -n shared,server,client -c gray,blue,magenta \"npm run dev -w @jat/shared\" \"npm run dev -w @jat/server\" \"npm run dev -w @jat/client\"",
+    "build": "npm run build -w @jat/server && npm run build -w @jat/client",
+    "lint": "eslint .",
+    "typecheck": "npm run build -w @jat/shared && npm run typecheck --workspaces --if-present",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^24.13.5",
+    "concurrently": "^10.0.5",
+    "eslint": "^10.10.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.7",
+    "globals": "^17.12.0",
+    "prettier": "^3.9.7",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.70.0"
+  }
+}
