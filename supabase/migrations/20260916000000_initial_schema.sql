@@ -1,7 +1,8 @@
 -- =============================================================================
--- DRAFT — TO BE REVIEWED IN CLAUDE CODE BEFORE APPLYING (roadmap step 1)
+-- Initial schema (roadmap step 1). Reviewed; covered by supabase/tests/database/schema_rls.test.sql.
+-- Don't edit this file after it has been applied to the hosted project; add a new migration instead.
 -- =============================================================================
--- Initial schema: profiles, job_postings, applications, usage_counters.
+-- Tables: profiles, job_postings, applications, usage_counters.
 -- (chat_messages is postponed — added by a later migration if the chatbot is built; ADR-007.)
 --
 -- Rules applied to every table:

@@ -46,12 +46,37 @@ nvm use                                    # Node 24
 # install dependencies (see "Dependencies to install" below)
 cp client/.env.example client/.env         # then fill in values
 cp server/.env.example server/.env         # then fill in values
-# apply supabase/migrations/* to your Supabase project (after the DRAFT is reviewed)
+# apply the database migrations (see "Database" below)
 npm run dev
 ```
 
 - Client: http://localhost:5173
 - API health check: http://localhost:3001/api/health
+
+## Database
+
+Schema changes live in `supabase/migrations/` and are applied with the Supabase CLI (installed as a dev dependency, so run it with `npx supabase`). Tests live in `supabase/tests/database/` and use pgTAP.
+
+**Local database (needs Docker Desktop running):**
+
+| Command | What it does |
+| --- | --- |
+| `npm run db:start` | Starts a local Supabase in Docker and applies all migrations. Prints local URLs and keys. Studio (the admin UI) is at http://127.0.0.1:54323 |
+| `npm run db:test` | Runs the pgTAP tests against the local database |
+| `npm run db:reset` | Recreates the local database from the migrations (deletes local data) |
+| `npm run db:stop` | Stops the local containers |
+
+**Hosted project (one-time link, then push new migrations):**
+
+```bash
+npx supabase login                                 # opens the browser
+npx supabase link --project-ref <your-project-ref> # asks for your database password
+npx supabase db push --dry-run                     # shows what would be applied
+npx supabase db push                               # applies it
+```
+
+- The project ref is the `<ref>` in `https://<ref>.supabase.co`.
+- **Never edit a migration that's already been pushed.** Create a new one with `npx supabase migration new <name>`.
 
 ## Environment variables
 

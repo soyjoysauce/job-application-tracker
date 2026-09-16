@@ -82,6 +82,15 @@ npm run build        # build server, then client (each builds shared first)
 npm run lint         # ESLint
 npm run typecheck    # build shared, then tsc --noEmit in each workspace
 npm run format       # Prettier
+npm run db:start     # local Supabase in Docker (applies migrations)
+npm run db:test      # pgTAP tests in supabase/tests/database/
+npm run db:reset     # rebuild local DB from migrations
+npm run db:stop      # stop local Supabase
 ```
+
+Database rules:
+- Never edit a migration that's already been pushed to the hosted project. Add a new one with `npx supabase migration new <name>`.
+- Every schema change comes with pgTAP tests. `npm run db:test` must pass.
+- Never run `supabase db push` or `supabase link` yourself. The owner runs them.
 
 Workspace-specific: `npm run <script> -w @jat/client | @jat/server | @jat/shared`.

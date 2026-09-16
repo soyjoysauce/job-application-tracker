@@ -2,9 +2,15 @@
 
 Build in this order. Each step should leave the app building, type-checking, and linting cleanly.
 
-## 1. Schema + RLS
-- Review and finalize `supabase/migrations/20260916000000_initial_schema_DRAFT.sql`, then remove `_DRAFT` from the name. The open design questions are already settled in `docs/decisions.md` (ADR-005 to ADR-007).
-- Apply the migration to the Supabase project.
+## 1. Schema + RLS ✅
+- Migration: `supabase/migrations/20260916000000_initial_schema.sql`. The design decisions are in `docs/decisions.md` (ADR-005 to ADR-007).
+- Tested locally with pgTAP (`supabase/tests/database/schema_rls.test.sql`, 35 tests):
+  - structure and policies;
+  - two-user isolation at the SQL level;
+  - the `usage_counters` tamper checks;
+  - `increment_usage()`;
+  - deletion cascading from `auth.users`.
+- Apply to the hosted project with `supabase link` + `supabase db push` (see README → Database).
 
 ## 2. Express foundation + auth middleware
 - Implement `requireAuth` (Bearer token → verify with Supabase → 401 on failure).
@@ -30,6 +36,7 @@ Build in this order. Each step should leave the app building, type-checking, and
 - Verify a user **can't** insert, update, or delete `usage_counters` rows directly through the Supabase REST API.
 
 ## 7. RLS verification with two users
+- The SQL-level checks already exist (`npm run db:test`). This step verifies the same guarantees end to end.
 - With two test accounts, confirm user A can't read, update, or delete user B's rows, both through the API and directly through the Supabase REST API with the anon key.
 - Confirm a user can't attach an application to another user's posting.
 
