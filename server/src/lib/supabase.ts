@@ -42,9 +42,11 @@ export function createUserClient(accessToken: string): Db {
 
 /**
  * Admin client: service role key, BYPASSES RLS.
- * Use ONLY for admin operations (account deletion). Never expose to the client.
+ * Use ONLY for admin operations (account deletion — services/account.service.ts).
+ * This is the only place the service role key is read. Never expose it to the client.
  */
 export function createAdminClient(): Db {
-  // TODO(step 4): createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, { auth: serverAuthOptions })
-  throw new Error('Not implemented — see docs/roadmap.md step 4');
+  return createClient<Database>(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, {
+    auth: serverAuthOptions,
+  });
 }

@@ -2,6 +2,7 @@
 import { Router } from 'express';
 
 import { requireAuth } from '../middleware/auth.middleware.js';
+import { accountRouter } from './account.routes.js';
 import { applicationRouter } from './application.routes.js';
 import { healthRouter } from './health.routes.js';
 import { meRouter } from './me.routes.js';
@@ -18,3 +19,4 @@ apiRouter.use('/me', requireAuth, meRouter);
 apiRouter.use('/profile', requireAuth, profileRouter);
 apiRouter.use('/postings', requireAuth, postingRouter);
 apiRouter.use('/applications', requireAuth, applicationRouter);
+apiRouter.use('/account', requireAuth, accountRouter);

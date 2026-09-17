@@ -20,7 +20,8 @@ flowchart LR
     Client -- "HTTPS + Authorization: Bearer &lt;JWT&gt;" --> API
     API -- "verify token" --> Auth
     API -- "per-request client<br/>(anon key + user JWT)" --> DB
-    API -- "admin client (service role)<br/>account deletion only" --> DB
+    API -- "admin client (service role)<br/>account deletion only" --> Auth
+    Auth -. "deleting auth.users row<br/>cascades to all user rows" .-> DB
     API -- "posting analysis" --> Anthropic
 ```
 
@@ -69,21 +70,29 @@ sequenceDiagram
 
 All routes are under `/api`. Everything except `/health` requires `Authorization: Bearer <token>`. Request and response types live in `shared/`.
 
-| Method | Path                | Body / query                                 | Success                                                 |
-| ------ | ------------------- | -------------------------------------------- | ------------------------------------------------------- |
-| GET    | `/health`           |                                              | 200 `{ status, timestamp }`                             |
-| GET    | `/me`               |                                              | 200 `{ id, email }`                                     |
-| GET    | `/profile`          |                                              | 200 `Profile` (empty lists if never saved)              |
-| PUT    | `/profile`          | `{ skills, stack }`                          | 200 `Profile`                                           |
-| GET    | `/postings`         |                                              | 200 `JobPostingSummary[]` (newest first)                |
-| POST   | `/postings`         | `{ rawText }`                                | 201 `JobPosting` (`analysisStatus: 'pending'`)          |
-| GET    | `/postings/:id`     |                                              | 200 `JobPosting`                                        |
-| DELETE | `/postings/:id`     |                                              | 204 (also deletes its application)                      |
-| GET    | `/applications`     | `?status=` (optional)                        | 200 `ApplicationWithPosting[]` (recently updated first) |
-| POST   | `/applications`     | `{ postingId, status?, notes?, appliedAt? }` | 201 `ApplicationWithPosting`                            |
-| GET    | `/applications/:id` |                                              | 200 `ApplicationWithPosting`                            |
-| PATCH  | `/applications/:id` | any of `{ status, notes, appliedAt }`        | 200 `ApplicationWithPosting`                            |
-| DELETE | `/applications/:id` |                                              | 204                                                     |
+| Method | Path                | Body / query                                 | Success                                                                                |
+| ------ | ------------------- | -------------------------------------------- | -------------------------------------------------------------------------------------- |
+| GET    | `/health`           |                                              | 200 `{ status, timestamp }`                                                            |
+| GET    | `/me`               |                                              | 200 `{ id, email }`                                                                    |
+| GET    | `/profile`          |                                              | 200 `Profile` (empty lists if never saved)                                             |
+| PUT    | `/profile`          | `{ skills, stack }`                          | 200 `Profile`                                                                          |
+| GET    | `/postings`         |                                              | 200 `JobPostingSummary[]` (newest first)                                               |
+| POST   | `/postings`         | `{ rawText }`                                | 201 `JobPosting` (`analysisStatus: 'pending'`)                                         |
+| GET    | `/postings/:id`     |                                              | 200 `JobPosting`                                                                       |
+| DELETE | `/postings/:id`     |                                              | 204 (also deletes its application)                                                     |
+| GET    | `/applications`     | `?status=` (optional)                        | 200 `ApplicationWithPosting[]` (recently updated first)                                |
+| POST   | `/applications`     | `{ postingId, status?, notes?, appliedAt? }` | 201 `ApplicationWithPosting`                                                           |
+| GET    | `/applications/:id` |                                              | 200 `ApplicationWithPosting`                                                           |
+| PATCH  | `/applications/:id` | any of `{ status, notes, appliedAt }`        | 200 `ApplicationWithPosting`                                                           |
+| DELETE | `/applications/:id` |                                              | 204                                                                                    |
+| DELETE | `/account`          |                                              | 204. Permanently deletes the signed-in user and all their data. 404 if already deleted |
+
+**Account deletion** (`services/account.service.ts`):
+
+1. Calls `auth.admin.deleteUser(userId, false)` with the admin client. This is the only use of the service role key.
+2. The **hard** delete removes the `auth.users` row, and `on delete cascade` removes the user's rows in every table.
+3. A soft delete (`true`) would keep that row and therefore all the data, so it must never be used here.
+4. The user's access token keeps passing `requireAuth` until it expires (ADR-008), but it no longer reaches any data.
 
 **Errors** use the shared shape `{ error: { code, message, details? } }`:
 

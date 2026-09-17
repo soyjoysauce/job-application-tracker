@@ -83,6 +83,11 @@ Conventions:
   - Return 404, never 403, for another user's resource, so its existence isn't revealed.
 - **DB types:** `server/src/types/database.types.ts` is generated. After every migration, run `npm run db:types` (with the local stack running), and never edit that file by hand.
 - **Postings are read-only** (ADR-009). Don't add an update endpoint unless asked.
+- **Account deletion:**
+  - `services/account.service.ts` is the only code that uses `createAdminClient()`.
+  - It must call `auth.admin.deleteUser(userId, false)`, a hard delete. A soft delete keeps `auth.users`, so the cascade never runs and the user's data stays.
+  - The user id comes only from `getAuth(req)`.
+  - Any new user-owned table must reference `auth.users` with `on delete cascade`, or deletion will leave its rows behind.
 - `shared/` is built to `dist/`. Rebuild it (or keep `npm run dev` running) after changing schemas.
 - Every new table follows the migration rules:
   - `user_id` → `auth.users` on delete cascade

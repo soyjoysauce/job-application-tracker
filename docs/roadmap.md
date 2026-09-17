@@ -37,10 +37,15 @@ Build in this order. Each step should leave the app building, type-checking, and
   - 409 for a duplicate application;
   - the posting → application cascade.
 
-## 4. Account deletion
+## 4. Account deletion ✅
 
-- `DELETE /api/account`: uses `createAdminClient()` to delete the auth user. `on delete cascade` removes all of that user's rows.
-- Verify that no rows remain for the deleted user.
+- `DELETE /api/account` (no body; the UI asks for confirmation) uses `createAdminClient()` to **hard**-delete the auth user. `on delete cascade` removes all of that user's rows.
+- Verified manually against the local stack (19 checks):
+  - 401 without a token and 204 on success;
+  - all of the user's rows in every table go from 1 to 0, and the Auth user is gone;
+  - the old token still passes auth until it expires but sees no data, a second delete returns 404, and signing in fails;
+  - the other user is untouched.
+- Also demonstrated locally that a **soft** delete would leave the user's rows in place, which is why the code passes `false`.
 
 ## 5. Frontend auth + views
 
