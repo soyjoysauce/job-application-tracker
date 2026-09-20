@@ -57,11 +57,15 @@ Build in this order. Each step should leave the app building, type-checking, and
 - Shared UI pieces in `components/ui.tsx` (Button, Input, Label, Card, ErrorText).
 - Verified in a browser against the local stack: sign up → profile; server-side trim/de-duplication shown in the form; refresh keeps the session; a signed-out deep link redirects to `/signin`; deletion signs out and the old credentials stop working; a failed sign-in shows the error.
 
-## 5b. Frontend postings + applications
+## 5b. Frontend postings + applications ✅
 
-- Postings: list, paste-new, detail (with analysis status), delete with a warning that it also deletes the application.
-- Applications: tracker list with status filter, create from a posting, edit status/notes/appliedAt, delete.
-- Add the nav links for both to `components/Layout.tsx`.
+- Postings: list (`/postings`, newest first, with analysis + application badges and a text preview), paste-new (`/postings/new`), detail (`/postings/:id`) with the analysis card, the application section, the pasted text, and a two-step delete that warns about the application cascade.
+- Applications: `/applications` with a status filter, inline status changes, notes preview, and remove. Create/edit (status, applied date, notes) lives on the posting detail page.
+- `useApiQuery(path)` hook: one place for loading/error/reload. Loading is **derived** from a key rather than set inside the effect (React's `set-state-in-effect` rule).
+- `lib/format.ts`: `formatTimestamp` (local, for createdAt) vs `formatCalendarDate` (UTC, for appliedAt), status tones and labels.
+- Status dropdowns are built from `applicationStatusSchema.options`, so the UI can't drift from the API.
+- Verified in a browser against the local stack: paste → list → detail → track application → edit status/date/notes → filter → inline status change → delete posting removes its application.
+- **Bug found and fixed while testing:** an applied date of 18 Sep displayed as 17 Sep, because a date-only value stored as midnight UTC was formatted in local time.
 
 ## 6. Rate limiting
 

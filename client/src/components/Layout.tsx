@@ -24,6 +24,12 @@ export function Layout() {
         <div className="mx-auto flex max-w-4xl flex-wrap items-center gap-4 px-4 py-3">
           <span className="font-semibold">Job Application Tracker</span>
           <nav className="flex gap-4 text-sm">
+            <NavLink to="/postings" className={navLinkClass}>
+              Postings
+            </NavLink>
+            <NavLink to="/applications" className={navLinkClass}>
+              Applications
+            </NavLink>
             <NavLink to="/profile" className={navLinkClass}>
               Profile
             </NavLink>

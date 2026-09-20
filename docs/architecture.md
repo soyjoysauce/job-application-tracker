@@ -116,8 +116,11 @@ client/src/
   lib/supabase.ts     Browser Supabase client — Auth only (session in localStorage, auto-refresh)
   lib/api.ts          apiFetch + api.get/post/put/patch/delete; adds the Bearer token, throws ApiError
   lib/authContext.ts  The auth context object (no components, for fast refresh)
-  components/         AuthProvider, ProtectedRoute, Layout (header + <Outlet/>), ui.tsx
+  lib/format.ts       Date and status formatting
+  components/         AuthProvider, ProtectedRoute, Layout (header + <Outlet/>),
+                      ApplicationSection, ui.tsx
   hooks/useAuth.ts    Reads the auth context
+  hooks/useApiQuery.ts  Loads a path; returns { data, loading, error, reload }
   pages/              Route-level components (default exports)
   App.tsx             Route table; main.tsx wraps it in BrowserRouter + AuthProvider
 ```
@@ -128,8 +131,12 @@ Route tree:
 /signin                       public
 ProtectedRoute                redirects to /signin when signed out (convenience only)
   └ Layout                    header, nav, sign out
-      /                       → /profile
-      /profile, /account      (postings + applications come in step 5b)
+      /                       → /postings
+      /postings               list
+      /postings/new           paste a posting (declared before /postings/:id)
+      /postings/:id           detail: analysis, application, text, delete
+      /applications           tracker with status filter
+      /profile, /account
 *                             404
 ```
 

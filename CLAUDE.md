@@ -88,7 +88,10 @@ Conventions:
   - Data goes through `api.get/post/put/patch/delete` from `lib/api.ts`, never straight to Supabase. Supabase is used for Auth only.
   - Read the session with `useAuth()`; never read tokens from localStorage directly.
   - Pages are default exports in `pages/`; add them under `<ProtectedRoute><Layout>` in `App.tsx` unless they're public.
-  - Data fetching is plain `useState` + `useEffect` (no query library). Use the `cancelled` flag pattern so a response can't update an unmounted page, and always handle loading, error, and empty states.
+  - Load data with `useApiQuery(path)` (`hooks/useApiQuery.ts`); call its `reload()` after a create/update/delete. No query library. Always handle loading, error, and empty states.
+  - Don't call `setState` synchronously inside `useEffect` (the `react-hooks/set-state-in-effect` rule). Derive values instead, or give a child a `key` so it remounts with fresh initial state.
+  - Dates: `formatTimestamp` for real moments (`createdAt`), `formatCalendarDate` for date-only values stored as midnight UTC (`appliedAt`). Mixing them up shifts the day by one.
+  - Build status dropdowns from the shared zod enum's `.options`, never a hand-written list.
   - Reuse `Button`, `Input`, `Label`, `Card` and `ErrorText` from `components/ui.tsx` instead of new Tailwind class strings.
   - Keep files that export components separate from files that export context or helpers (the `react-refresh` lint rule).
   - `ProtectedRoute` is convenience only. Real protection is the server plus RLS.

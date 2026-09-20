@@ -5,9 +5,21 @@ import type {
   InputHTMLAttributes,
   LabelHTMLAttributes,
   ReactNode,
+  SelectHTMLAttributes,
+  TextareaHTMLAttributes,
 } from 'react';
 
 type ButtonVariant = 'primary' | 'secondary' | 'danger';
+
+export type BadgeTone = 'gray' | 'blue' | 'green' | 'red' | 'amber';
+
+const badgeTones: Record<BadgeTone, string> = {
+  gray: 'bg-slate-100 text-slate-700',
+  blue: 'bg-blue-100 text-blue-800',
+  green: 'bg-green-100 text-green-800',
+  red: 'bg-red-100 text-red-800',
+  amber: 'bg-amber-100 text-amber-800',
+};
 
 const buttonStyles: Record<ButtonVariant, string> = {
   primary: 'bg-slate-900 text-white hover:bg-slate-700',
@@ -34,6 +46,38 @@ export function Input({ className = '', ...props }: InputHTMLAttributes<HTMLInpu
       className={`w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-slate-500 focus:outline-none disabled:bg-slate-100 ${className}`}
       {...props}
     />
+  );
+}
+
+export function Textarea({
+  className = '',
+  ...props
+}: TextareaHTMLAttributes<HTMLTextAreaElement>) {
+  return (
+    <textarea
+      className={`w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-slate-500 focus:outline-none ${className}`}
+      {...props}
+    />
+  );
+}
+
+export function Select({ className = '', ...props }: SelectHTMLAttributes<HTMLSelectElement>) {
+  return (
+    <select
+      className={`rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-slate-500 focus:outline-none disabled:opacity-50 ${className}`}
+      {...props}
+    />
+  );
+}
+
+/** Coloured pill for a status value. */
+export function Badge({ children, tone = 'gray' }: { children: ReactNode; tone?: BadgeTone }) {
+  return (
+    <span
+      className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${badgeTones[tone]}`}
+    >
+      {children}
+    </span>
   );
 }
 
