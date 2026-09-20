@@ -84,6 +84,7 @@ Conventions:
   - Return 404, never 403, for another user's resource, so its existence isn't revealed.
 - **DB types:** `server/src/types/database.types.ts` is generated. After every migration, run `npm run db:types` (with the local stack running), and never edit that file by hand.
 - **Postings are read-only** (ADR-009). Don't add an update endpoint unless asked.
+- **Rate limiting:** every Claude-backed route is mounted as `requireAuth, rateLimit, …`. Never count usage anywhere else, and never track it in memory. `GET /api/usage` is free (no `rateLimit`).
 - **Client (React):**
   - Data goes through `api.get/post/put/patch/delete` from `lib/api.ts`, never straight to Supabase. Supabase is used for Auth only.
   - Read the session with `useAuth()`; never read tokens from localStorage directly.

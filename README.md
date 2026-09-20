@@ -12,7 +12,7 @@ Postponed: a per-posting chatbot ("ask about this role" / "mock interviewer", SS
 
 Out of scope: job aggregator APIs, scraping, n8n, auto-fill, billing.
 
-> **Status:** scaffold only. `GET /api/health` is the only implemented endpoint. See [docs/roadmap.md](docs/roadmap.md).
+> **Status:** accounts, profile, postings, application tracking, account deletion and rate limiting are built and working. The Claude analyzer (step 8) is next, so postings are saved but not yet analyzed. See [docs/roadmap.md](docs/roadmap.md).
 
 ## Architecture
 
@@ -95,14 +95,15 @@ npx supabase db push                               # applies it
 
 ### `server/.env`
 
-| Variable                    | Description                                               |
-| --------------------------- | --------------------------------------------------------- |
-| `SUPABASE_URL`              | Supabase project URL                                      |
-| `SUPABASE_ANON_KEY`         | Supabase anon/publishable key, used with the user's token |
-| `SUPABASE_SERVICE_ROLE_KEY` | **Secret.** Bypasses RLS. Account deletion only           |
-| `ANTHROPIC_API_KEY`         | **Secret.** Claude API key                                |
-| `CLIENT_ORIGIN`             | Allowed CORS origin (e.g. `http://localhost:5173`)        |
-| `PORT`                      | Local dev port (default `3001`, ignored on Vercel)        |
+| Variable                    | Description                                                           |
+| --------------------------- | --------------------------------------------------------------------- |
+| `SUPABASE_URL`              | Supabase project URL                                                  |
+| `SUPABASE_ANON_KEY`         | Supabase anon/publishable key, used with the user's token             |
+| `SUPABASE_SERVICE_ROLE_KEY` | **Secret.** Bypasses RLS. Account deletion only                       |
+| `ANTHROPIC_API_KEY`         | **Secret.** Claude API key                                            |
+| `CLIENT_ORIGIN`             | Allowed CORS origin (e.g. `http://localhost:5173`)                    |
+| `PORT`                      | Local dev port (default `3001`, ignored on Vercel)                    |
+| `DAILY_CLAUDE_LIMIT`        | Claude requests per user per day, UTC window (optional, default `20`) |
 
 All server variables are validated at startup by `server/src/config/env.ts`.
 

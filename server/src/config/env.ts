@@ -9,6 +9,8 @@ const envSchema = z.object({
   ANTHROPIC_API_KEY: z.string().min(1),
   CLIENT_ORIGIN: z.string().url(),
   PORT: z.coerce.number().int().positive().default(3001),
+  /** Claude requests allowed per user per day (UTC), enforced by rateLimit middleware (ADR-006). */
+  DAILY_CLAUDE_LIMIT: z.coerce.number().int().positive().default(20),
 });
 
 export type Env = z.infer<typeof envSchema>;

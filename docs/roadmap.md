@@ -67,11 +67,15 @@ Build in this order. Each step should leave the app building, type-checking, and
 - Verified in a browser against the local stack: paste → list → detail → track application → edit status/date/notes → filter → inline status change → delete posting removes its application.
 - **Bug found and fixed while testing:** an applied date of 18 Sep displayed as 17 Sep, because a date-only value stored as midnight UTC was formatted in local time.
 
-## 6. Rate limiting
+## 6. Rate limiting ✅
 
-- Limiter middleware that calls `supabase.rpc('increment_usage')` with the per-request client, compares the returned count to the limit, and returns 429 when it's over (see ADR-006).
-- Apply it to Claude-backed endpoints.
-- Verify a user **can't** insert, update, or delete `usage_counters` rows directly through the Supabase REST API.
+- `rateLimit` middleware (`server/src/middleware/rateLimit.middleware.ts`): calls `increment_usage()` through the per-request client, compares the new count to `DAILY_CLAUDE_LIMIT` (default 20), and throws 429 `RATE_LIMITED` with a `Retry-After` header and `{ limit, resetAt }` details.
+- Counting happens **before** the work, so failed or slow Claude calls can't be retried for free. A blocked request still increments, so `GET /api/usage` clamps `used` to the limit.
+- `GET /api/usage` returns `{ used, limit, remaining, resetAt }` for the UI (reading is free).
+- `server/src/services/usage.service.ts` computes the window as midnight **UTC**, matching the SQL function.
+- Verified against the local stack with `DAILY_CLAUDE_LIMIT=3` and two users (13 checks): the first 3 requests pass, the 4th returns 429 with `Retry-After`, reported usage is clamped while the stored counter keeps counting, and the second user has an independent quota.
+- **Still to do in step 8:** mount `rateLimit` on the analyzer route.
+- A user **can't** insert, update, or delete `usage_counters` rows directly (covered by the pgTAP tests from step 1).
 
 ## 7. RLS verification with two users
 

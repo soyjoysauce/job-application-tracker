@@ -8,6 +8,7 @@ import { healthRouter } from './health.routes.js';
 import { meRouter } from './me.routes.js';
 import { postingRouter } from './posting.routes.js';
 import { profileRouter } from './profile.routes.js';
+import { usageRouter } from './usage.routes.js';
 
 export const apiRouter = Router();
 
@@ -20,3 +21,8 @@ apiRouter.use('/profile', requireAuth, profileRouter);
 apiRouter.use('/postings', requireAuth, postingRouter);
 apiRouter.use('/applications', requireAuth, applicationRouter);
 apiRouter.use('/account', requireAuth, accountRouter);
+apiRouter.use('/usage', requireAuth, usageRouter);
+
+// The rateLimit middleware (middleware/rateLimit.middleware.ts) goes on Claude-backed
+// routes when the analyzer arrives in step 8:
+//   apiRouter.use('/postings/:id/analyze', requireAuth, rateLimit, analyzeRouter);

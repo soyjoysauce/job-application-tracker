@@ -86,6 +86,7 @@ All routes are under `/api`. Everything except `/health` requires `Authorization
 | PATCH  | `/applications/:id` | any of `{ status, notes, appliedAt }`        | 200 `ApplicationWithPosting`                                                           |
 | DELETE | `/applications/:id` |                                              | 204                                                                                    |
 | DELETE | `/account`          |                                              | 204. Permanently deletes the signed-in user and all their data. 404 if already deleted |
+| GET    | `/usage`            |                                              | 200 `UsageStatus` — today's Claude usage `{ used, limit, remaining, resetAt }`         |
 
 **Account deletion** (`services/account.service.ts`):
 
@@ -105,6 +106,7 @@ All routes are under `/api`. Everything except `/health` requires `Authorization
 | 404    | `NOT_FOUND`         | Unknown route, or a resource that doesn't exist **or belongs to another user**. The two cases are indistinguishable on purpose. |
 | 409    | `CONFLICT`          | The posting already has an application                                                                                          |
 | 413    | `PAYLOAD_TOO_LARGE` | Body over 100kb                                                                                                                 |
+| 429    | `RATE_LIMITED`      | Over the daily Claude limit. Sends `Retry-After` (seconds) and `details: { limit, resetAt }`                                    |
 | 500    | `INTERNAL_ERROR`    | Anything unexpected (logged on the server)                                                                                      |
 
 Postings have no update endpoint (ADR-009). Their analysis fields are written only by the analyzer (step 8).
@@ -154,7 +156,7 @@ The browser holds a session and refreshes its access token automatically. `apiFe
    - Controllers: parse and validate input with zod, call services, shape the HTTP response.
    - Services: business logic, database calls, and Claude calls. No `req`/`res`.
    - All input is validated with zod. One central error middleware returns `{ error: { code, message, details? } }`.
-4. **Rate-limit state lives in the database** (`usage_counters`), never in memory, because Vercel runs multiple function instances that don't share memory. Users can only _read_ their counters. Increments go through the `increment_usage()` Postgres function (ADR-006).
+4. **Rate-limit state lives in the database** (`usage_counters`), never in memory, because Vercel runs multiple function instances that don't share memory. Users can only _read_ their counters. Increments go through the `increment_usage()` Postgres function (ADR-006). Put the `rateLimit` middleware **after** `requireAuth` on every Claude-backed route; it counts before the work runs.
 5. **HTTP hardening.** CORS allows only `CLIENT_ORIGIN`. `helmet` is on. JSON bodies are capped (`100kb`). Environment variables are validated with zod at startup (`server/src/config/env.ts`), and the process fails fast if they're invalid.
 6. **Claude output is untrusted.** Validate it with the shared zod schema before saving. On failure, retry **once**. If it fails again, set `analysis_status = 'failed'`.
 
