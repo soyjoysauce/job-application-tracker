@@ -1,11 +1,72 @@
 // API client for the Express server.
-// Every request sends `Authorization: Bearer <supabase access token>`.
-// STUB — implemented in roadmap step 5.
+// Every request carries the Supabase access token; the server verifies it (docs/architecture.md).
+import type { ApiErrorBody } from '@jat/shared';
 
-export async function apiFetch<T>(_path: string, _init?: RequestInit): Promise<T> {
-  // TODO(step 5):
-  // 1. Read the current session's access token from Supabase Auth.
-  // 2. Call `${import.meta.env.VITE_API_URL}${path}` with the Bearer header.
-  // 3. Parse the shared ApiErrorBody shape on non-2xx responses and throw.
-  throw new Error('Not implemented — see docs/roadmap.md step 5');
+import { supabase } from './supabase';
+
+/** A failed API response. `status` and `code` let callers react (e.g. 404 vs 401). */
+export class ApiError extends Error {
+  constructor(
+    readonly status: number,
+    readonly code: string,
+    message: string,
+    readonly details?: unknown,
+  ) {
+    super(message);
+    this.name = 'ApiError';
+  }
+}
+
+const API_URL = import.meta.env.VITE_API_URL;
+
+export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
+  // getSession() refreshes the access token first if it has expired.
+  const { data } = await supabase.auth.getSession();
+  const token = data.session?.access_token;
+  if (!token) {
+    throw new ApiError(401, 'UNAUTHORIZED', 'You are signed out. Please sign in again.');
+  }
+
+  const response = await fetch(`${API_URL}${path}`, {
+    ...init,
+    headers: {
+      ...(init.body ? { 'Content-Type': 'application/json' } : {}),
+      ...init.headers,
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    throw await toApiError(response);
+  }
+
+  // 204 No Content (our DELETE endpoints) has no body to parse.
+  if (response.status === 204) {
+    return undefined as T;
+  }
+  return (await response.json()) as T;
+}
+
+/** Convenience wrappers so pages read as `api.get('/profile')`. */
+export const api = {
+  get: <T>(path: string) => apiFetch<T>(path),
+  post: <T>(path: string, body: unknown) =>
+    apiFetch<T>(path, { method: 'POST', body: JSON.stringify(body) }),
+  put: <T>(path: string, body: unknown) =>
+    apiFetch<T>(path, { method: 'PUT', body: JSON.stringify(body) }),
+  patch: <T>(path: string, body: unknown) =>
+    apiFetch<T>(path, { method: 'PATCH', body: JSON.stringify(body) }),
+  delete: <T = void>(path: string) => apiFetch<T>(path, { method: 'DELETE' }),
+};
+
+async function toApiError(response: Response): Promise<ApiError> {
+  try {
+    const body = (await response.json()) as ApiErrorBody;
+    if (body.error?.message) {
+      return new ApiError(response.status, body.error.code, body.error.message, body.error.details);
+    }
+  } catch {
+    // Not JSON (e.g. a proxy error page) — fall through to a generic message.
+  }
+  return new ApiError(response.status, 'UNKNOWN', `Request failed (${response.status})`);
 }

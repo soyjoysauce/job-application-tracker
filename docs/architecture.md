@@ -109,6 +109,32 @@ All routes are under `/api`. Everything except `/health` requires `Authorization
 
 Postings have no update endpoint (ADR-009). Their analysis fields are written only by the analyzer (step 8).
 
+## Client structure
+
+```
+client/src/
+  lib/supabase.ts     Browser Supabase client — Auth only (session in localStorage, auto-refresh)
+  lib/api.ts          apiFetch + api.get/post/put/patch/delete; adds the Bearer token, throws ApiError
+  lib/authContext.ts  The auth context object (no components, for fast refresh)
+  components/         AuthProvider, ProtectedRoute, Layout (header + <Outlet/>), ui.tsx
+  hooks/useAuth.ts    Reads the auth context
+  pages/              Route-level components (default exports)
+  App.tsx             Route table; main.tsx wraps it in BrowserRouter + AuthProvider
+```
+
+Route tree:
+
+```
+/signin                       public
+ProtectedRoute                redirects to /signin when signed out (convenience only)
+  └ Layout                    header, nav, sign out
+      /                       → /profile
+      /profile, /account      (postings + applications come in step 5b)
+*                             404
+```
+
+The browser holds a session and refreshes its access token automatically. `apiFetch` asks Supabase for the current token on each call, so an expired token is refreshed before the request goes out.
+
 ## Architecture rules
 
 1. **Auth flow.** Follow the flow above exactly. Never trust a user id sent in a request body or query. The user's identity comes only from the verified token.

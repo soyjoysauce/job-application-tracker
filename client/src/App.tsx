@@ -1,11 +1,27 @@
-// Placeholder root component. Routing, auth, and views are added in roadmap step 5.
+// Route table. Pages inside <ProtectedRoute> require a session; <Layout> gives them the shell.
+import { Navigate, Route, Routes } from 'react-router';
+
+import { Layout } from './components/Layout';
+import { ProtectedRoute } from './components/ProtectedRoute';
+import AccountPage from './pages/AccountPage';
+import NotFoundPage from './pages/NotFoundPage';
+import ProfilePage from './pages/ProfilePage';
+import SignInPage from './pages/SignInPage';
+
 export default function App() {
   return (
-    <main className="flex min-h-screen items-center justify-center bg-slate-50 p-8">
-      <div className="text-center">
-        <h1 className="text-3xl font-semibold text-slate-900">Job Application Tracker</h1>
-        <p className="mt-2 text-slate-600">Scaffold ready. Features coming soon.</p>
-      </div>
-    </main>
+    <Routes>
+      <Route path="/signin" element={<SignInPage />} />
+
+      <Route element={<ProtectedRoute />}>
+        <Route element={<Layout />}>
+          <Route path="/" element={<Navigate to="/profile" replace />} />
+          <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/account" element={<AccountPage />} />
+        </Route>
+      </Route>
+
+      <Route path="*" element={<NotFoundPage />} />
+    </Routes>
   );
 }

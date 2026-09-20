@@ -47,11 +47,21 @@ Build in this order. Each step should leave the app building, type-checking, and
   - the other user is untouched.
 - Also demonstrated locally that a **soft** delete would leave the user's rows in place, which is why the code passes `false`.
 
-## 5. Frontend auth + views
+## 5a. Frontend auth + profile ✅
 
-- Implement Supabase Auth in the client (sign up, sign in, sign out, session handling).
-- Implement `apiFetch` with the Bearer token.
-- Add routing and pages: profile, postings list/detail, application tracker.
+- Browser Supabase client (session kept in localStorage, token auto-refreshed) — Auth only.
+- `apiFetch` / `api.*` helpers attach the Bearer token, parse the shared error shape, and throw `ApiError` (`status`, `code`).
+- Auth state in React context: `lib/authContext.ts`, `components/AuthProvider.tsx`, `hooks/useAuth.ts`.
+- React Router 8 (`react-router`), declarative mode: `/signin` public; `ProtectedRoute` → `Layout` → `/profile`, `/account`; `*` → 404.
+- Pages: sign in / sign up (with an email-confirmation message), profile (comma-separated skills and stack), account (delete, guarded by typing `DELETE`).
+- Shared UI pieces in `components/ui.tsx` (Button, Input, Label, Card, ErrorText).
+- Verified in a browser against the local stack: sign up → profile; server-side trim/de-duplication shown in the form; refresh keeps the session; a signed-out deep link redirects to `/signin`; deletion signs out and the old credentials stop working; a failed sign-in shows the error.
+
+## 5b. Frontend postings + applications
+
+- Postings: list, paste-new, detail (with analysis status), delete with a warning that it also deletes the application.
+- Applications: tracker list with status filter, create from a posting, edit status/notes/appliedAt, delete.
+- Add the nav links for both to `components/Layout.tsx`.
 
 ## 6. Rate limiting
 

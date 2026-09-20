@@ -53,6 +53,10 @@ npm run dev
 - Client: http://localhost:5173
 - API health check: http://localhost:3001/api/health
 
+`client/.env` and `server/.env` must point at the **same** Supabase project (`VITE_SUPABASE_URL` = `SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` = `SUPABASE_ANON_KEY`). If they differ, sign-in works but every API call returns 401.
+
+To develop against the local Supabase instead, run `npm run db:start`, take the API URL and anon key from `npx supabase status`, and put them in `client/.env.local` and the server's environment. `.env.local` overrides `.env` and is gitignored.
+
 ## Database
 
 Schema changes live in `supabase/migrations/` and are applied with the Supabase CLI (installed as a dev dependency, so run it with `npx supabase`). Tests live in `supabase/tests/database/` and use pgTAP.
@@ -141,13 +145,12 @@ npm install -D tsx @types/express @types/cors -w @jat/server
 **client:**
 
 ```bash
-npm install react react-dom @supabase/supabase-js -w @jat/client
+npm install react react-dom react-router @supabase/supabase-js -w @jat/client
 npm install -D vite @vitejs/plugin-react tailwindcss @tailwindcss/vite @types/react @types/react-dom -w @jat/client
 ```
 
 Added in later roadmap steps:
 
-- Routing (step 5): e.g. `react-router`
 - Tests (step 9): `jest`, `supertest`, `@types/supertest`, `@testing-library/react`, `@testing-library/jest-dom`, plus ESM/TS support for Jest (e.g. `ts-jest`), and a DOM environment (e.g. `jest-environment-jsdom`)
 
 > After installing, check that `node_modules/@jat/shared` is a link to `shared/`, not a downloaded package: `ls -l node_modules/@jat` should show `shared -> ../../shared`.

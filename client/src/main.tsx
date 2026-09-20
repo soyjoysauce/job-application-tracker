@@ -1,7 +1,9 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
+import { BrowserRouter } from 'react-router';
 
 import App from './App';
+import { AuthProvider } from './components/AuthProvider';
 import './index.css';
 
 const rootElement = document.getElementById('root');
@@ -11,6 +13,11 @@ if (!rootElement) {
 
 createRoot(rootElement).render(
   <StrictMode>
-    <App />
+    {/* BrowserRouter gives real URLs; AuthProvider shares the session with every page. */}
+    <BrowserRouter>
+      <AuthProvider>
+        <App />
+      </AuthProvider>
+    </BrowserRouter>
   </StrictMode>,
 );

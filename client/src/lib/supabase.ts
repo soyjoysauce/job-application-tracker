@@ -1,8 +1,19 @@
-// Browser Supabase client (used for Auth only; data goes through the Express API).
-// STUB — implemented in roadmap step 5.
-import type { SupabaseClient } from '@supabase/supabase-js';
+// Browser Supabase client. Used for Auth only — all data goes through the Express API,
+// which verifies the token and applies RLS (see docs/architecture.md).
+import { createClient } from '@supabase/supabase-js';
 
-export function getSupabaseClient(): SupabaseClient {
-  // TODO(step 5): create a singleton with createClient(VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY).
-  throw new Error('Not implemented — see docs/roadmap.md step 5');
-}
+// Created once: two clients would compete over the same stored session.
+export const supabase = createClient(
+  import.meta.env.VITE_SUPABASE_URL,
+  import.meta.env.VITE_SUPABASE_ANON_KEY,
+  {
+    auth: {
+      // Keep the session in localStorage so a page refresh stays signed in.
+      persistSession: true,
+      // Renew the access token before it expires (default lifetime: 1 hour).
+      autoRefreshToken: true,
+      // We never use magic links / OAuth redirects, so don't read tokens from the URL.
+      detectSessionInUrl: false,
+    },
+  },
+);

@@ -44,7 +44,8 @@ client/src/
   pages/        route-level components
   components/   reusable UI components
   hooks/        custom React hooks
-  lib/          supabase.ts (Auth client), api.ts (fetch wrapper with Bearer token)
+  lib/          supabase.ts (Auth client), api.ts (fetch wrapper with Bearer token),
+                authContext.ts (context object only, no components)
 
 server/src/
   app.ts        Express app, `export default app` (Vercel entry; never call listen() here)
@@ -83,6 +84,14 @@ Conventions:
   - Return 404, never 403, for another user's resource, so its existence isn't revealed.
 - **DB types:** `server/src/types/database.types.ts` is generated. After every migration, run `npm run db:types` (with the local stack running), and never edit that file by hand.
 - **Postings are read-only** (ADR-009). Don't add an update endpoint unless asked.
+- **Client (React):**
+  - Data goes through `api.get/post/put/patch/delete` from `lib/api.ts`, never straight to Supabase. Supabase is used for Auth only.
+  - Read the session with `useAuth()`; never read tokens from localStorage directly.
+  - Pages are default exports in `pages/`; add them under `<ProtectedRoute><Layout>` in `App.tsx` unless they're public.
+  - Data fetching is plain `useState` + `useEffect` (no query library). Use the `cancelled` flag pattern so a response can't update an unmounted page, and always handle loading, error, and empty states.
+  - Reuse `Button`, `Input`, `Label`, `Card` and `ErrorText` from `components/ui.tsx` instead of new Tailwind class strings.
+  - Keep files that export components separate from files that export context or helpers (the `react-refresh` lint rule).
+  - `ProtectedRoute` is convenience only. Real protection is the server plus RLS.
 - **Account deletion:**
   - `services/account.service.ts` is the only code that uses `createAdminClient()`.
   - It must call `auth.admin.deleteUser(userId, false)`, a hard delete. A soft delete keeps `auth.users`, so the cascade never runs and the user's data stays.
