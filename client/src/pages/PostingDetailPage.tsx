@@ -1,5 +1,5 @@
-// One job posting: analysis (once step 8 exists), its application, the pasted text, and delete.
-import type { JobPosting, PostingExtraction } from '@jat/shared';
+// One job posting: Claude analysis, its application, the pasted text, and delete.
+import type { GapAnalysis, JobPosting, PostingExtraction, UsageStatus } from '@jat/shared';
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 
@@ -66,7 +66,7 @@ export default function PostingDetailPage() {
         </div>
       </div>
 
-      <AnalysisCard posting={posting} />
+      <AnalysisCard posting={posting} onAnalyzed={reload} />
 
       <ApplicationSection posting={posting} onChanged={reload} />
 
@@ -106,8 +106,23 @@ export default function PostingDetailPage() {
   );
 }
 
-function AnalysisCard({ posting }: { posting: JobPosting }) {
+function AnalysisCard({ posting, onAnalyzed }: { posting: JobPosting; onAnalyzed: () => void }) {
   const { extracted, gapAnalysis, analysisStatus } = posting;
+  const [analyzing, setAnalyzing] = useState(false);
+  const [error, setError] = useState<string>();
+
+  async function handleAnalyze() {
+    setAnalyzing(true);
+    setError(undefined);
+    try {
+      await api.post(`/api/postings/${posting.id}/analyze`, {});
+      onAnalyzed(); // Reload the posting, which now has the results.
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : 'Analysis failed');
+    } finally {
+      setAnalyzing(false);
+    }
+  }
 
   if (!extracted) {
     return (
@@ -115,9 +130,16 @@ function AnalysisCard({ posting }: { posting: JobPosting }) {
         <h2 className="font-medium">Analysis</h2>
         <p className="mt-1 text-sm text-slate-600">
           {analysisStatus === 'failed'
-            ? 'Claude could not read this posting. Try deleting it and pasting the text again.'
-            : 'Claude will extract the role details and compare them with your profile. (Coming in step 8.)'}
+            ? 'Claude could not analyse this posting last time. You can try again.'
+            : 'Claude reads the posting and compares it with the skills in your profile.'}
         </p>
+        <ErrorText>{error}</ErrorText>
+        <div className="mt-3 flex items-center gap-3">
+          <Button disabled={analyzing} onClick={() => void handleAnalyze()}>
+            {analyzing ? 'Analyzing…' : 'Analyze with Claude'}
+          </Button>
+          <RemainingToday />
+        </div>
       </Card>
     );
   }
@@ -139,16 +161,41 @@ function AnalysisCard({ posting }: { posting: JobPosting }) {
         </div>
       </dl>
 
-      {/* The gap analysis shape is defined in step 8; show it raw until then. */}
-      {gapAnalysis != null && (
-        <div className="mt-4">
-          <h3 className="text-sm font-medium text-slate-700">Gap analysis</h3>
-          <pre className="mt-1 overflow-auto rounded bg-slate-50 p-3 text-xs text-slate-700">
-            {JSON.stringify(gapAnalysis, null, 2)}
-          </pre>
-        </div>
-      )}
+      {gapAnalysis && <GapAnalysisSection gap={gapAnalysis} />}
     </Card>
+  );
+}
+
+const fitTone = { strong: 'green', moderate: 'amber', weak: 'red' } as const;
+const fitLabel = { strong: 'Strong match', moderate: 'Partial match', weak: 'Weak match' };
+
+function GapAnalysisSection({ gap }: { gap: GapAnalysis }) {
+  return (
+    <div className="mt-6 border-t border-slate-200 pt-4">
+      <div className="flex items-center gap-2">
+        <h3 className="text-sm font-medium text-slate-700">How you compare</h3>
+        <Badge tone={fitTone[gap.overallFit]}>{fitLabel[gap.overallFit]}</Badge>
+      </div>
+
+      <p className="mt-2 text-sm text-slate-700">{gap.summary}</p>
+
+      <dl className="mt-3 space-y-3 text-sm">
+        <SkillRow label="You have" values={gap.matchedSkills} />
+        <SkillRow label="Missing" values={gap.missingSkills} />
+        <SkillRow label="Nice-to-haves you have" values={gap.matchedNiceToHave} />
+      </dl>
+    </div>
+  );
+}
+
+/** "3 of 20 analyses left today" — so the daily limit is visible before it's hit. */
+function RemainingToday() {
+  const { data: usage } = useApiQuery<UsageStatus>('/api/usage');
+  if (!usage) return null;
+  return (
+    <span className="text-xs text-slate-500">
+      {usage.remaining} of {usage.limit} analyses left today
+    </span>
   );
 }
 

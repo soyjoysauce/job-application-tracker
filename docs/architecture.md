@@ -70,23 +70,24 @@ sequenceDiagram
 
 All routes are under `/api`. Everything except `/health` requires `Authorization: Bearer <token>`. Request and response types live in `shared/`.
 
-| Method | Path                | Body / query                                 | Success                                                                                |
-| ------ | ------------------- | -------------------------------------------- | -------------------------------------------------------------------------------------- |
-| GET    | `/health`           |                                              | 200 `{ status, timestamp }`                                                            |
-| GET    | `/me`               |                                              | 200 `{ id, email }`                                                                    |
-| GET    | `/profile`          |                                              | 200 `Profile` (empty lists if never saved)                                             |
-| PUT    | `/profile`          | `{ skills, stack }`                          | 200 `Profile`                                                                          |
-| GET    | `/postings`         |                                              | 200 `JobPostingSummary[]` (newest first)                                               |
-| POST   | `/postings`         | `{ rawText }`                                | 201 `JobPosting` (`analysisStatus: 'pending'`)                                         |
-| GET    | `/postings/:id`     |                                              | 200 `JobPosting`                                                                       |
-| DELETE | `/postings/:id`     |                                              | 204 (also deletes its application)                                                     |
-| GET    | `/applications`     | `?status=` (optional)                        | 200 `ApplicationWithPosting[]` (recently updated first)                                |
-| POST   | `/applications`     | `{ postingId, status?, notes?, appliedAt? }` | 201 `ApplicationWithPosting`                                                           |
-| GET    | `/applications/:id` |                                              | 200 `ApplicationWithPosting`                                                           |
-| PATCH  | `/applications/:id` | any of `{ status, notes, appliedAt }`        | 200 `ApplicationWithPosting`                                                           |
-| DELETE | `/applications/:id` |                                              | 204                                                                                    |
-| DELETE | `/account`          |                                              | 204. Permanently deletes the signed-in user and all their data. 404 if already deleted |
-| GET    | `/usage`            |                                              | 200 `UsageStatus` — today's Claude usage `{ used, limit, remaining, resetAt }`         |
+| Method | Path                    | Body / query                                 | Success                                                                                    |
+| ------ | ----------------------- | -------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| GET    | `/health`               |                                              | 200 `{ status, timestamp }`                                                                |
+| GET    | `/me`                   |                                              | 200 `{ id, email }`                                                                        |
+| GET    | `/profile`              |                                              | 200 `Profile` (empty lists if never saved)                                                 |
+| PUT    | `/profile`              | `{ skills, stack }`                          | 200 `Profile`                                                                              |
+| GET    | `/postings`             |                                              | 200 `JobPostingSummary[]` (newest first)                                                   |
+| POST   | `/postings`             | `{ rawText }`                                | 201 `JobPosting` (`analysisStatus: 'pending'`)                                             |
+| GET    | `/postings/:id`         |                                              | 200 `JobPosting`                                                                           |
+| DELETE | `/postings/:id`         |                                              | 204 (also deletes its application)                                                         |
+| POST   | `/postings/:id/analyze` |                                              | 200 `JobPosting` with `extracted` + `gapAnalysis`. Calls Claude; uses one daily quota unit |
+| GET    | `/applications`         | `?status=` (optional)                        | 200 `ApplicationWithPosting[]` (recently updated first)                                    |
+| POST   | `/applications`         | `{ postingId, status?, notes?, appliedAt? }` | 201 `ApplicationWithPosting`                                                               |
+| GET    | `/applications/:id`     |                                              | 200 `ApplicationWithPosting`                                                               |
+| PATCH  | `/applications/:id`     | any of `{ status, notes, appliedAt }`        | 200 `ApplicationWithPosting`                                                               |
+| DELETE | `/applications/:id`     |                                              | 204                                                                                        |
+| DELETE | `/account`              |                                              | 204. Permanently deletes the signed-in user and all their data. 404 if already deleted     |
+| GET    | `/usage`                |                                              | 200 `UsageStatus` — today's Claude usage `{ used, limit, remaining, resetAt }`             |
 
 **Account deletion** (`services/account.service.ts`):
 
@@ -97,17 +98,19 @@ All routes are under `/api`. Everything except `/health` requires `Authorization
 
 **Errors** use the shared shape `{ error: { code, message, details? } }`:
 
-| Status | Code                | When                                                                                                                            |
-| ------ | ------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| 400    | `VALIDATION_ERROR`  | Input fails a zod schema. `details` is a list of `{ path, message }`. Unknown fields such as `userId` are rejected.             |
-| 400    | `BAD_REQUEST`       | Malformed JSON, or a value the database rejects                                                                                 |
-| 401    | `UNAUTHORIZED`      | Missing or invalid token                                                                                                        |
-| 403    | `FORBIDDEN`         | RLS rejected a write                                                                                                            |
-| 404    | `NOT_FOUND`         | Unknown route, or a resource that doesn't exist **or belongs to another user**. The two cases are indistinguishable on purpose. |
-| 409    | `CONFLICT`          | The posting already has an application                                                                                          |
-| 413    | `PAYLOAD_TOO_LARGE` | Body over 100kb                                                                                                                 |
-| 429    | `RATE_LIMITED`      | Over the daily Claude limit. Sends `Retry-After` (seconds) and `details: { limit, resetAt }`                                    |
-| 500    | `INTERNAL_ERROR`    | Anything unexpected (logged on the server)                                                                                      |
+| Status | Code                   | When                                                                                                                            |
+| ------ | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| 400    | `VALIDATION_ERROR`     | Input fails a zod schema. `details` is a list of `{ path, message }`. Unknown fields such as `userId` are rejected.             |
+| 400    | `BAD_REQUEST`          | Malformed JSON, or a value the database rejects                                                                                 |
+| 401    | `UNAUTHORIZED`         | Missing or invalid token                                                                                                        |
+| 403    | `FORBIDDEN`            | RLS rejected a write                                                                                                            |
+| 404    | `NOT_FOUND`            | Unknown route, or a resource that doesn't exist **or belongs to another user**. The two cases are indistinguishable on purpose. |
+| 409    | `CONFLICT`             | The posting already has an application                                                                                          |
+| 413    | `PAYLOAD_TOO_LARGE`    | Body over 100kb                                                                                                                 |
+| 429    | `RATE_LIMITED`         | Over the daily Claude limit. Sends `Retry-After` (seconds) and `details: { limit, resetAt }`                                    |
+| 409    | `ANALYSIS_IN_PROGRESS` | An analysis of this posting is already running                                                                                  |
+| 502    | `ANALYSIS_FAILED`      | Claude failed twice; the posting is marked `failed` and can be retried                                                          |
+| 500    | `INTERNAL_ERROR`       | Anything unexpected (logged on the server)                                                                                      |
 
 Postings have no update endpoint (ADR-009). Their analysis fields are written only by the analyzer (step 8).
 
@@ -159,6 +162,7 @@ The browser holds a session and refreshes its access token automatically. `apiFe
 4. **Rate-limit state lives in the database** (`usage_counters`), never in memory, because Vercel runs multiple function instances that don't share memory. Users can only _read_ their counters. Increments go through the `increment_usage()` Postgres function (ADR-006). Put the `rateLimit` middleware **after** `requireAuth` on every Claude-backed route; it counts before the work runs.
 5. **HTTP hardening.** CORS allows only `CLIENT_ORIGIN`. `helmet` is on. JSON bodies are capped (`100kb`). Environment variables are validated with zod at startup (`server/src/config/env.ts`), and the process fails fast if they're invalid.
 6. **Claude output is untrusted.** Validate it with the shared zod schema before saving. On failure, retry **once**. If it fails again, set `analysis_status = 'failed'`.
+7. **Posting text is untrusted input.** Wrap user text in labelled tags (`<job_posting>`) and instruct Claude to treat tag contents as data, never instructions (ADR-010). Never build a prompt by concatenating user text into the instructions themselves.
 
 ## Vercel specifics
 

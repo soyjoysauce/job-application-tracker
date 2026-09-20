@@ -88,11 +88,14 @@ Build in this order. Each step should leave the app building, type-checking, and
 - **Worth knowing:** with that leaky policy, the **API checks still passed**, because the services also filter by `user_id`. Only the direct-REST checks caught it. That's why this step tests both paths — and why policy changes must always be re-verified with `npm run verify:rls`, not just through the UI.
 - Run it against a deployed environment by pointing `API_URL` and `SUPABASE_URL` at it.
 
-## 8. Claude posting analyzer
+## 8. Claude posting analyzer ✅
 
-- Extract structured fields and a gap analysis against the profile.
-- Validate with `postingAnalysisSchema`. Retry once, then set `analysis_status = 'failed'`.
-- Save `extraction` → `job_postings.extracted` and `gapAnalysis` → `job_postings.gap_analysis`.
+- `POST /api/postings/:id/analyze` (behind `requireAuth` + `rateLimit`) extracts the posting's facts and compares them with the profile in one Claude call (ADR-010: `claude-sonnet-5`, button-triggered, `messages.parse` with the shared zod schema).
+- Retries once, then sets `analysis_status = 'failed'` and returns 502. A second concurrent request gets 409.
+- Saves `extraction` → `job_postings.extracted`, `gapAnalysis` → `job_postings.gap_analysis`.
+- Gap analysis shape: matched / missing / matched nice-to-have skills, `overallFit`, and a short summary.
+- UI: "Analyze with Claude" on the posting page with "N of 20 analyses left today", then the extracted fields plus a "How you compare" section.
+- Verified: failure path with an invalid key (502, status `failed`, two attempts logged, quota still spent); three live calls — salary extracted when listed, `null` and "Not stated" when absent, and a **prompt-injection attempt inside a posting was ignored**.
 
 ## 9. Tests
 

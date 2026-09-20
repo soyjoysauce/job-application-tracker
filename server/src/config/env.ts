@@ -11,6 +11,8 @@ const envSchema = z.object({
   PORT: z.coerce.number().int().positive().default(3001),
   /** Claude requests allowed per user per day (UTC), enforced by rateLimit middleware (ADR-006). */
   DAILY_CLAUDE_LIMIT: z.coerce.number().int().positive().default(20),
+  /** Model used by the posting analyzer (ADR-010). Change here, not in code. */
+  CLAUDE_MODEL: z.string().min(1).default('claude-sonnet-5'),
 });
 
 export type Env = z.infer<typeof envSchema>;

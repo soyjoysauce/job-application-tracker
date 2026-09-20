@@ -1,8 +1,12 @@
-// Anthropic (Claude) client factory. STUB — implemented in roadmap step 8.
-// The API key is server-only; the client never talks to Anthropic directly.
-import type Anthropic from '@anthropic-ai/sdk';
+// Anthropic (Claude) client factory. The API key is server-only — the browser never calls Claude.
+import Anthropic from '@anthropic-ai/sdk';
 
+import { env } from '../config/env.js';
+
+let client: Anthropic | undefined;
+
+/** Created once per server instance so a warm Vercel instance reuses the connection. */
 export function getAnthropicClient(): Anthropic {
-  // TODO(step 8): return a lazily created singleton: new Anthropic({ apiKey: env.ANTHROPIC_API_KEY })
-  throw new Error('Not implemented — see docs/roadmap.md step 8');
+  client ??= new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
+  return client;
 }

@@ -4,7 +4,7 @@ A personal job application tracker and analyzer.
 
 - **Accounts:** sign up / sign in with Supabase Auth
 - **Skills profile:** your skills and stack
-- **Posting analyzer:** paste a job posting's text. Claude extracts the title, company, required and nice-to-have skills, stack, seniority, and salary range (only if listed), plus a gap analysis against your profile.
+- **Posting analyzer:** paste a job posting's text and press Analyze. Claude extracts the title, company, required and nice-to-have skills, stack, seniority, and salary range (only if listed), plus a gap analysis against your profile: what you match, what's missing, and a short summary.
 - **Application tracker:** status, notes, and dates, linked to postings
 - **Account deletion:** removes all of your data
 
@@ -12,7 +12,7 @@ Postponed: a per-posting chatbot ("ask about this role" / "mock interviewer", SS
 
 Out of scope: job aggregator APIs, scraping, n8n, auto-fill, billing.
 
-> **Status:** accounts, profile, postings, application tracking, account deletion and rate limiting are built and working. The Claude analyzer (step 8) is next, so postings are saved but not yet analyzed. See [docs/roadmap.md](docs/roadmap.md).
+> **Status:** every feature in the list above is built and working, including the Claude analyzer. Remaining: automated tests, CI, and deployment (steps 9-11 in [docs/roadmap.md](docs/roadmap.md)).
 
 ## Architecture
 
@@ -113,6 +113,7 @@ npx supabase db push                               # applies it
 | `CLIENT_ORIGIN`             | Allowed CORS origin (e.g. `http://localhost:5173`)                    |
 | `PORT`                      | Local dev port (default `3001`, ignored on Vercel)                    |
 | `DAILY_CLAUDE_LIMIT`        | Claude requests per user per day, UTC window (optional, default `20`) |
+| `CLAUDE_MODEL`              | Model for the analyzer (optional, default `claude-sonnet-5`)          |
 
 All server variables are validated at startup by `server/src/config/env.ts`.
 

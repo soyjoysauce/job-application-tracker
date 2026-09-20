@@ -3,7 +3,9 @@
 import {
   analysisStatusSchema,
   applicationStatusSchema,
+  gapAnalysisSchema,
   postingExtractionSchema,
+  type GapAnalysis,
   type JobPosting,
   type JobPostingSummary,
   type PostingApplicationRef,
@@ -42,9 +44,16 @@ interface PostingDetailRow extends PostingSummaryRow {
 }
 
 // Stored JSON is validated before saving (step 8); parsing again keeps the API types honest.
+// Anything that doesn't match (e.g. written by an older version) is treated as "not analysed".
 function parseExtraction(value: Json | null): PostingExtraction | null {
   if (value === null) return null;
   const result = postingExtractionSchema.safeParse(value);
+  return result.success ? result.data : null;
+}
+
+function parseGapAnalysis(value: Json | null): GapAnalysis | null {
+  if (value === null) return null;
+  const result = gapAnalysisSchema.safeParse(value);
   return result.success ? result.data : null;
 }
 
@@ -70,7 +79,7 @@ function toPosting(row: PostingDetailRow): JobPosting {
     id: row.id,
     rawText: row.raw_text,
     extracted: parseExtraction(row.extracted),
-    gapAnalysis: row.gap_analysis,
+    gapAnalysis: parseGapAnalysis(row.gap_analysis),
     analysisStatus: analysisStatusSchema.parse(row.analysis_status),
     createdAt: row.created_at,
     updatedAt: row.updated_at,

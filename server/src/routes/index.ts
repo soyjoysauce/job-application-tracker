@@ -22,7 +22,3 @@ apiRouter.use('/postings', requireAuth, postingRouter);
 apiRouter.use('/applications', requireAuth, applicationRouter);
 apiRouter.use('/account', requireAuth, accountRouter);
 apiRouter.use('/usage', requireAuth, usageRouter);
-
-// The rateLimit middleware (middleware/rateLimit.middleware.ts) goes on Claude-backed
-// routes when the analyzer arrives in step 8:
-//   apiRouter.use('/postings/:id/analyze', requireAuth, rateLimit, analyzeRouter);

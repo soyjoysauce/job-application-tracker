@@ -11,14 +11,18 @@ export const createPostingSchema = z.strictObject({
 });
 export type CreatePostingInput = z.input<typeof createPostingSchema>;
 
-// STUB — posting extraction schema (roadmap step 8). Saved to job_postings.extracted.
-// Facts from the posting text only. Refine types and constraints when implementing.
+// Facts taken from the posting text only. Saved to job_postings.extracted.
+// Claude returns this shape; unknown values are returned as the strings below rather than
+// invented, so the UI can show "Not stated" instead of a guess.
 export const postingExtractionSchema = z.object({
+  /** "Not stated" when the posting has no clear title. */
   title: z.string(),
+  /** "Not stated" when the company is not named. */
   company: z.string(),
   requiredSkills: z.array(z.string()),
   niceToHaveSkills: z.array(z.string()),
   stack: z.array(z.string()),
+  /** e.g. "Junior", "Mid", "Senior", "Staff", or "Not stated". */
   seniority: z.string(),
   // Only present if the posting lists a salary; never inferred.
   salaryRange: z
@@ -31,10 +35,20 @@ export const postingExtractionSchema = z.object({
 });
 export type PostingExtraction = z.infer<typeof postingExtractionSchema>;
 
-// STUB — gap analysis schema (roadmap step 8). Saved to job_postings.gap_analysis.
-// Compares the posting against the user's profile.
-// TODO(step 8): define the shape (e.g. matched / missing skills, summary).
-export const gapAnalysisSchema = z.unknown();
+// Gap analysis: how the user's profile compares with the posting.
+// Saved to job_postings.gap_analysis. Claude produces it; this schema both tells Claude
+// the exact shape to return and validates the reply before it is saved.
+export const gapAnalysisSchema = z.object({
+  /** Required skills the user already has (matched by meaning, e.g. "Node" ≈ "Node.js"). */
+  matchedSkills: z.array(z.string()),
+  /** Required skills missing from the profile. */
+  missingSkills: z.array(z.string()),
+  /** Nice-to-have skills the user has — worth mentioning in an application. */
+  matchedNiceToHave: z.array(z.string()),
+  overallFit: z.enum(['strong', 'moderate', 'weak']),
+  /** Two or three sentences: strengths, main gaps, what to emphasise. */
+  summary: z.string(),
+});
 export type GapAnalysis = z.infer<typeof gapAnalysisSchema>;
 
 // Claude returns both parts in one response; the server saves them to separate columns.
