@@ -3,7 +3,11 @@
 // Do NOT call app.listen() here — local development uses src/local.ts.
 import cors from 'cors';
 import express from 'express';
-import helmet from 'helmet';
+// `{ default as helmet }`, not a plain default import: helmet ships separate ESM and
+// CommonJS type declarations, and Vercel's build resolves the CommonJS ones. A plain
+// default import then yields the module object instead of the function
+// ("TS2349: This expression is not callable"). Naming the export works under both.
+import { default as helmet } from 'helmet';
 
 import { env } from './config/env.js';
 import { errorMiddleware } from './middleware/error.middleware.js';

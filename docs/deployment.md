@@ -106,6 +106,18 @@ npm install --workspace=@jat/server --include-workspace-root=false
 cd server && npm run build
 ```
 
+**`TS2349: This expression is not callable` for a default-imported package**
+
+Vercel compiles the Express entry file itself, and its settings can resolve a package's **CommonJS** type declarations where the local build resolves the ESM ones. A plain default import then gives the module object rather than the function, and the error points at the call site, not the import.
+
+Seen with `helmet`, which ships both `.d.cts` and `.d.mts` declarations. Fix: import the default export by name, which works under both resolutions:
+
+```ts
+import { default as helmet } from 'helmet';
+```
+
+Local builds can pass while Vercel's fails, so this one is only reproducible by deploying.
+
 ## Things to know
 
 - **Preview deployments of the client can't reach the API.** Each preview gets its own URL, and the server only allows `CLIENT_ORIGIN`. Either test against production, or set a Preview-scoped `CLIENT_ORIGIN` for the specific preview URL you're working with.
