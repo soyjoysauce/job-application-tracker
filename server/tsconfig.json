@@ -1,6 +1,31 @@
+// Self-contained on purpose: this file does NOT extend ../tsconfig.base.json.
+//
+// Vercel compiles the Express entry (src/app.ts) itself, with `server/` as the project
+// root, and does not follow an `extends` that points outside that directory. The inherited
+// options — esModuleInterop above all — were silently lost, so default imports resolved to
+// module namespaces and the build failed with errors like
+// "TS2709: Cannot use namespace 'Anthropic' as a type".
+//
+// Keep the shared options below in sync with ../tsconfig.base.json.
 {
-  "extends": "../tsconfig.base.json",
+  "$schema": "https://json.schemastore.org/tsconfig",
   "compilerOptions": {
+    // --- shared with ../tsconfig.base.json ---
+    "target": "ES2023",
+    "lib": ["ES2023"],
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+    "exactOptionalPropertyTypes": false,
+    "forceConsistentCasingInFileNames": true,
+    "esModuleInterop": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+
+    // --- server-specific ---
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "rootDir": "src",

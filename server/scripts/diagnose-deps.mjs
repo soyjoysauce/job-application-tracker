@@ -3,10 +3,16 @@
 // compiles locally but fails on Vercel with "TS2349: This expression is not callable".
 // Delete this file and the `buildCommand` entry in vercel.json once deploys are green.
 import { createRequire } from 'node:module';
-import { readFileSync, readdirSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 
 const require = createRequire(import.meta.url);
+
+// Is the repository root visible from the build? server/tsconfig.json is self-contained
+// so it doesn't matter for compiling, but this shows whether files outside the project
+// root directory are present at all.
+console.log('[diag] cwd:', process.cwd());
+console.log('[diag] ../tsconfig.base.json present:', existsSync('../tsconfig.base.json'));
 
 try {
   const entry = require.resolve('helmet');
