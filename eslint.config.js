@@ -15,7 +15,7 @@ export default defineConfig([
 
   // Server + shared: Node environment
   {
-    files: ['server/**/*.ts', 'shared/**/*.ts', 'scripts/**/*.ts'],
+    files: ['server/**/*.{ts,mjs}', 'shared/**/*.ts', 'scripts/**/*.{ts,mjs}'],
     languageOptions: {
       globals: globals.node,
     },
