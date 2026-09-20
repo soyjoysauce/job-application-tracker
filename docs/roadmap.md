@@ -97,11 +97,15 @@ Build in this order. Each step should leave the app building, type-checking, and
 - UI: "Analyze with Claude" on the posting page with "N of 20 analyses left today", then the extracted fields plus a "How you compare" section.
 - Verified: failure path with an invalid key (502, status `failed`, two attempts logged, quota still spent); three live calls — salary extracted when listed, `null` and "Not stated" when absent, and a **prompt-injection attempt inside a posting was ignored**.
 
-## 9. Tests
+## 9. Tests ✅
 
-- Server: Jest + Supertest (routes, auth middleware, error shape, validation).
-- Client: React Testing Library.
-- Pick the test runner setup (Jest with ESM + TS) when this step starts.
+- **Runner: Vitest**, not Jest as originally planned — it runs this project's ESM + TypeScript with no extra configuration, and reuses the client's Vite setup. Same `describe` / `it` / `expect` API.
+- **The database is faked** (`server/test/helpers.ts`): tests run in ~1s with no Docker, so they work anywhere including CI. Real database behaviour stays covered by `npm run db:test` (pgTAP) and `npm run verify:rls`.
+- `npm test` from the root runs both suites (54 tests).
+- **Server (41):** health/404/error shape/CORS/helmet/body limit; `requireAuth` accepting and rejecting tokens; rate limiting (allows up to the limit, 429 with `Retry-After`, counts before the work, not applied to free routes); the analyzer (success, retry once, fail twice → 502 + `failed`, refusal, schema mismatch, 409 concurrency, **posting text sent as tagged data**, user id never taken from the request); usage window and clamping; Postgres error mapping; validation (unknown fields like `userId` rejected, bad ids, empty updates, no echo of submitted values).
+- **Client (13):** date helpers including a **regression guard for the off-by-one calendar-date bug**; profile page load/save/error; posting detail page analyze flow, quota message, "Not listed" salary, and the delete-cascade warning.
+- Test files are type-checked too (`server/tsconfig.test.json`, client `include`).
+- Verified the suite catches regressions: re-introducing the step 5b date bug failed the guard (`expected 'Sep 17, 2026' to contain '18'`).
 
 ## 10. GitHub Actions CI
 

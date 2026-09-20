@@ -1,0 +1,10 @@
+// Type-checks the tests too. Never emits, so rootDir can cover the whole workspace.
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "rootDir": ".",
+    "types": ["node"]
+  },
+  "include": ["src", "test", "vitest.config.ts"]
+}

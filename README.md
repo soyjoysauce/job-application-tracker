@@ -125,8 +125,19 @@ All server variables are validated at startup by `server/src/config/env.ts`.
 | `npm run build`        | Builds `server/`, then `client/` (each builds `shared/` first, which is what Vercel runs per project) |
 | `npm run lint`         | ESLint across the monorepo                                                                            |
 | `npm run typecheck`    | Builds `shared/`, then type-checks every workspace                                                    |
+| `npm test`             | Runs the Vitest suites in `server/` and `client/` (no Docker needed)                                  |
 | `npm run format`       | Formats with Prettier                                                                                 |
 | `npm run format:check` | Checks formatting without writing                                                                     |
+
+## Tests
+
+| Layer      | Command              | What it covers                                                                                                                                                                       |
+| ---------- | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Unit + API | `npm test`           | Vitest. Server: routing, auth, validation, rate limiting, analyzer retry/failure, error shapes (Supabase and Claude are faked). Client: React Testing Library over pages and helpers |
+| Database   | `npm run db:test`    | pgTAP against the local Supabase: tables, RLS policies, two-user isolation, `increment_usage()`, delete cascade                                                                      |
+| Isolation  | `npm run verify:rls` | Two real users attacking each other through the API and through direct Supabase access                                                                                               |
+
+`npm test` needs nothing running. The other two need the local Supabase (`npm run db:start`), and `verify:rls` also needs the API.
 
 ## Dependencies to install
 
@@ -162,6 +173,6 @@ npm install -D vite @vitejs/plugin-react tailwindcss @tailwindcss/vite @types/re
 
 Added in later roadmap steps:
 
-- Tests (step 9): `jest`, `supertest`, `@types/supertest`, `@testing-library/react`, `@testing-library/jest-dom`, plus ESM/TS support for Jest (e.g. `ts-jest`), and a DOM environment (e.g. `jest-environment-jsdom`)
+- Tests (step 9, already installed): server `vitest`, `supertest`, `@types/supertest`; client `vitest`, `jsdom`, `@testing-library/react`, `@testing-library/dom`, `@testing-library/user-event`, `@testing-library/jest-dom`
 
 > After installing, check that `node_modules/@jat/shared` is a link to `shared/`, not a downloaded package: `ls -l node_modules/@jat` should show `shared -> ../../shared`.

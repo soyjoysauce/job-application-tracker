@@ -17,6 +17,7 @@
     "build": "npm run build -w @jat/server && npm run build -w @jat/client",
     "lint": "eslint .",
     "typecheck": "npm run build -w @jat/shared && npm run typecheck --workspaces --if-present",
+    "test": "npm run build -w @jat/shared && npm run test --workspaces --if-present",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "db:start": "supabase start -x realtime,storage-api,imgproxy,edge-runtime,logflare,vector,supavisor,mailpit",

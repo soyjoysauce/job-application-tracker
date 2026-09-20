@@ -7,7 +7,9 @@
     "dev": "tsx watch --env-file=.env src/local.ts",
     "build": "npm run build -w @jat/shared && tsc -p tsconfig.json",
     "start": "node --env-file=.env dist/local.js",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.test.json --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.126.0",
@@ -21,6 +23,9 @@
   "devDependencies": {
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
-    "tsx": "^4.23.13"
+    "@types/supertest": "^7.2.1",
+    "supertest": "^7.2.2",
+    "tsx": "^4.23.13",
+    "vitest": "^5.0.1"
   }
 }

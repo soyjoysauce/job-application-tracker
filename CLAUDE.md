@@ -131,7 +131,15 @@ npm run db:test      # pgTAP tests in supabase/tests/database/
 npm run db:reset     # rebuild local DB from migrations
 npm run db:stop      # stop local Supabase
 npm run db:types     # regenerate server/src/types/database.types.ts from the local DB
+npm test             # Vitest: server + client suites (no Docker needed)
 ```
+
+Testing rules:
+
+- Every change to server behaviour comes with Vitest tests in `server/test/`; client behaviour in `client/test/`. `npm test` must pass.
+- Tests never hit a real Supabase or Anthropic: mock `../src/lib/supabase.js` and `../src/lib/anthropic.js`, and use `createFakeDb` from `server/test/helpers.ts`.
+- After fixing a bug, add the test that would have caught it (see the calendar-date guard in `client/test/format.test.ts`).
+- Keep test files type-checked: server tests are covered by `tsconfig.test.json`, client tests by the `test` entry in `include`.
 
 Database rules:
 
