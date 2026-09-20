@@ -107,9 +107,14 @@ Build in this order. Each step should leave the app building, type-checking, and
 - Test files are type-checked too (`server/tsconfig.test.json`, client `include`).
 - Verified the suite catches regressions: re-introducing the step 5b date bug failed the guard (`expected 'Sep 17, 2026' to contain '18'`).
 
-## 10. GitHub Actions CI
+## 10. GitHub Actions CI ✅
 
-- On push/PR: install, lint, typecheck, test, build.
+- `.github/workflows/ci.yml` runs on pushes to `main` and on every pull request. A new push to the same branch cancels the previous run.
+- **Job 1 — checks (~1-2 min):** `npm ci`, `lint`, `typecheck`, `test` (54 Vitest tests), `build`. No Docker and no secrets: Supabase and Anthropic are faked in tests.
+- **Job 2 — database (~3-4 min, in parallel):** starts local Supabase in Docker via `supabase/setup-cli`, applies every migration, and runs the 35 pgTAP tests. This is what catches a broken migration or RLS policy before it reaches the hosted project.
+- Node comes from `.nvmrc`, so CI and local development can't drift.
+- `npm run verify:rls` is deliberately **not** in CI (it needs the API running as well); run it locally after policy or endpoint changes.
+- Verified locally before pushing: `npm ci --dry-run` (lockfile in sync) and the exact command sequence. GitHub validates the workflow file itself on the first push.
 
 ## 11. Vercel deployment + Supabase keep-alive
 

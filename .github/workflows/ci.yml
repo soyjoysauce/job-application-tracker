@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# A new push to the same branch cancels the previous run instead of queueing behind it.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: Lint, typecheck, tests, build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          # Uses the Node version in .nvmrc, so CI and local development can't drift.
+          node-version-file: .nvmrc
+          cache: npm
+
+      # `npm ci` installs exactly what package-lock.json specifies — no surprise upgrades.
+      - run: npm ci
+
+      - run: npm run lint
+
+      - run: npm run typecheck
+
+      # Vitest: no Docker, no secrets — Supabase and Anthropic are faked (see server/test/helpers.ts).
+      - run: npm test
+
+      - run: npm run build
+
+  database:
+    name: Database tests (pgTAP)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: supabase/setup-cli@v3
+        with:
+          version: latest
+
+      # Starts Postgres, Auth, PostgREST and Kong in Docker, applying every migration.
+      # The services we don't test are excluded to keep startup short.
+      - name: Start local Supabase
+        run: supabase start -x realtime,storage-api,imgproxy,edge-runtime,logflare,vector,supavisor,mailpit,studio
+
+      # The 35 pgTAP tests: tables, RLS policies, two-user isolation,
+      # increment_usage(), and the delete cascade.
+      - name: Run pgTAP tests
+        run: supabase test db

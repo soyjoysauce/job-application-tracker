@@ -1,5 +1,7 @@
 # Job Application Tracker
 
+[![CI](https://github.com/soyjoysauce/job-application-tracker/actions/workflows/ci.yml/badge.svg)](https://github.com/soyjoysauce/job-application-tracker/actions/workflows/ci.yml)
+
 A personal job application tracker and analyzer.
 
 - **Accounts:** sign up / sign in with Supabase Auth
@@ -138,6 +140,15 @@ All server variables are validated at startup by `server/src/config/env.ts`.
 | Isolation  | `npm run verify:rls` | Two real users attacking each other through the API and through direct Supabase access                                                                                               |
 
 `npm test` needs nothing running. The other two need the local Supabase (`npm run db:start`), and `verify:rls` also needs the API.
+
+**Continuous integration:** [`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs on every push to `main` and every pull request:
+
+| Job      | Runs                                               | Time     |
+| -------- | -------------------------------------------------- | -------- |
+| Checks   | `npm ci`, lint, typecheck, `npm test`, build       | ~1-2 min |
+| Database | Starts Supabase in Docker and runs the pgTAP tests | ~3-4 min |
+
+Both jobs run in parallel and need no secrets. `verify:rls` isn't in CI because it also needs the API running — run it locally after changing policies or endpoints.
 
 ## Dependencies to install
 
