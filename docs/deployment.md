@@ -55,6 +55,10 @@ server/  →  Vercel project #2 (Express as a single Vercel Function)
 
    These are compiled into the browser bundle, so never put a secret here.
 
+   Vercel warns that a `VITE_` prefix "exposes values to the browser" and suggests changing the variable to **Config**. Accept that: all three are public by design (the anon key is meant for browsers — RLS is what protects the data). Storing them as private would be a false promise, since Vite inlines them into the bundle either way.
+
+   The server's `SUPABASE_SERVICE_ROLE_KEY` and `ANTHROPIC_API_KEY` are the opposite: real, private environment variables on the **server** project only, and never with a `VITE_` prefix.
+
 4. **Deploy**, then note the URL, e.g. `https://jat-client.vercel.app`.
 
 ## 3. Point the two at each other
@@ -105,6 +109,14 @@ Reproduce the same conditions locally before pushing a fix:
 npm install --workspace=@jat/server --include-workspace-root=false
 cd server && npm run build
 ```
+
+**The client deploys but renders a blank page**
+
+Check the browser console. `supabaseUrl is required` means the bundle was built **without** its `VITE_*` variables — Vite inlines them at build time, so setting them afterwards changes nothing until you rebuild.
+
+Fix: add the three variables to the client project, then Deployments → ⋯ → **Redeploy** with **"Use existing Build Cache" unchecked**.
+
+Since the app now checks at startup, a build missing them shows a screen naming the missing variables instead of a blank page.
 
 **`TS2709: Cannot use namespace 'X' as a type` / `TS2349: This expression is not callable`**
 

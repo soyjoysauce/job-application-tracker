@@ -2,6 +2,7 @@
 // Every request carries the Supabase access token; the server verifies it (docs/architecture.md).
 import type { ApiErrorBody } from '@jat/shared';
 
+import { env } from './env';
 import { supabase } from './supabase';
 
 /** A failed API response. `status` and `code` let callers react (e.g. 404 vs 401). */
@@ -17,7 +18,7 @@ export class ApiError extends Error {
   }
 }
 
-const API_URL = import.meta.env.VITE_API_URL;
+const API_URL = env.VITE_API_URL;
 
 export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
   // getSession() refreshes the access token first if it has expired.
@@ -27,14 +28,26 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
     throw new ApiError(401, 'UNAUTHORIZED', 'You are signed out. Please sign in again.');
   }
 
-  const response = await fetch(`${API_URL}${path}`, {
-    ...init,
-    headers: {
-      ...(init.body ? { 'Content-Type': 'application/json' } : {}),
-      ...init.headers,
-      Authorization: `Bearer ${token}`,
-    },
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${API_URL}${path}`, {
+      ...init,
+      headers: {
+        ...(init.body ? { 'Content-Type': 'application/json' } : {}),
+        ...init.headers,
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  } catch {
+    // fetch only rejects when the request never got a response: wrong API address,
+    // server unreachable, or the browser blocked it (CORS). The browser's own message
+    // is just "Failed to fetch", which says nothing about the cause.
+    throw new ApiError(
+      0,
+      'NETWORK_ERROR',
+      `Could not reach the API at ${API_URL}. Check that the server is running and that it allows requests from this site.`,
+    );
+  }
 
   if (!response.ok) {
     throw await toApiError(response);
