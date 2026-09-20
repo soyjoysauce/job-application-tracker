@@ -106,17 +106,21 @@ npm install --workspace=@jat/server --include-workspace-root=false
 cd server && npm run build
 ```
 
-**`TS2349: This expression is not callable` for a default-imported package**
+**`TS2709: Cannot use namespace 'X' as a type` / `TS2349: This expression is not callable`**
 
 Vercel compiles the Express entry file itself, and its settings can resolve a package's **CommonJS** type declarations where the local build resolves the ESM ones. A plain default import then gives the module object rather than the function, and the error points at the call site, not the import.
 
-Seen with `helmet`, which ships both `.d.cts` and `.d.mts` declarations. Fix: import the default export by name, which works under both resolutions:
+Seen with `@anthropic-ai/sdk` and `helmet`. Making `server/tsconfig.json` self-contained (no `extends` pointing outside the root directory) did **not** fix it, so Vercel's entry compile does not use our config at all.
+
+Fix: don't rely on default-import interop in server code.
 
 ```ts
-import { default as helmet } from 'helmet';
+import { Anthropic } from '@anthropic-ai/sdk'; // named export — always safe
 ```
 
-Local builds can pass while Vercel's fails, so this one is only reproducible by deploying.
+Where the package offers no named export for what you need (`helmet`), take whichever of the module or its `.default` is the value — see `server/src/app.ts`.
+
+These errors appear only on Vercel; every local compiler configuration accepts the default import, so they are reproducible only by deploying.
 
 ## Things to know
 

@@ -65,6 +65,7 @@ supabase/migrations/  timestamped SQL files
 Conventions:
 
 - **Server imports use `.js` extensions** for relative paths (`import { x } from './foo.js'`), which `NodeNext` module resolution requires.
+- **Prefer named imports over default imports for server dependencies.** Vercel compiles the Express entry with its own TypeScript settings, where a default import can resolve to the module namespace instead of the value — `TS2709: Cannot use namespace 'X' as a type` or `TS2349: This expression is not callable`. These errors appear **only on Vercel**; every local configuration compiles. Use `import { Anthropic } from '@anthropic-ai/sdk'`. Where a package has no named export for what you need (e.g. `helmet`), take whichever of `module`/`module.default` is the value, as `server/src/app.ts` does.
 - **Don't create `server/src/index.ts` or `server/src/server.ts`.** Vercel auto-detects those names, and `src/app.ts` must stay the only entry.
 - Throw `HttpError(status, code, message)` for expected errors, and let the error middleware format them. Express 5 forwards errors thrown in async handlers automatically, so no try/catch wrappers are needed.
 - **Auth:**
