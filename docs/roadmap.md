@@ -116,29 +116,20 @@ Build in this order. Each step should leave the app building, type-checking, and
 - `npm run verify:rls` is deliberately **not** in CI (it needs the API running as well); run it locally after policy or endpoint changes.
 - Verified locally before pushing: `npm ci --dry-run` (lockfile in sync) and the exact command sequence. GitHub validates the workflow file itself on the first push.
 
-## 11. Vercel deployment + Supabase keep-alive
+## 11. Vercel deployment + Supabase keep-alive — ready for you to run
 
-- Create two Vercel projects from this repo: root directory `client/` and root directory `server/`.
-- Set environment variables for each project. Set `CLIENT_ORIGIN` to the deployed client URL.
-- In each project's **Root Directory** settings, confirm **"Include source files outside of the Root Directory in the Build Step"** is on. It's on by default for new projects, and both apps need it to reach `shared/`.
-- **Building `shared/`:** both `client` and `server` `build` scripts start with `npm run build -w @jat/shared`. Running that from inside `server/` was tested locally: npm finds the workspace root.
-- **Verify with the first preview deploy:**
-  - Does Vercel's Express preset run `server`'s `build` script? If not, set the server project's Build Command to `npm run build`.
-  - Did install run at the repo root (workspace lockfile)?
-  - Does `/api/health` respond?
-- Add a daily GitHub Actions workflow that pings Supabase so the free-tier project isn't paused.
+Everything in the repository is prepared; the remaining steps need your Vercel and GitHub accounts. Full walkthrough: **[docs/deployment.md](deployment.md)**.
 
-**What Vercel's docs confirm (checked 2026-09-16):**
+Prepared in this step:
 
-- One Vercel project per folder, and every push deploys both.
-- The package manager is detected from the **root** lockfile. npm workspaces are supported, as long as each package has a unique `name` and internal dependencies are listed in each `package.json`.
-- Projects whose code and internal dependencies didn't change are skipped automatically, so a change to `shared/` redeploys both.
+- `server/vercel.json` sets `buildCommand: npm run build`, so `shared/` is built before the API. Vercel's Express docs don't state whether the preset runs the `build` script by itself, so this removes the guesswork.
+- `engines: { node: "24.x" }` in `server/package.json` and `client/package.json` pins the runtime (Vercel reads `engines.node`; 24.x is also its current default).
+- `.github/workflows/keepalive.yml`: a daily request to the Supabase REST API so the free project doesn't pause. Needs the `SUPABASE_URL` and `SUPABASE_ANON_KEY` repository secrets, and can be run by hand from the Actions tab.
+- `client/vercel.json` (from the scaffold) rewrites all paths to `index.html` so refreshing a deep link works.
 
-**Not stated in the docs:**
+Your steps, in order: deploy the server → deploy the client → set `CLIENT_ORIGIN` to the client URL and redeploy the server → set Supabase's Site URL → add the keep-alive secrets.
 
-- Whether the Express preset runs the `build` script.
-- The docs also contradict themselves: one page says an app "will not be able to access files outside" its root directory, while the monorepo FAQ says the "include source files outside" setting allows it.
-- Hence the verification step above.
+Known limitation: client **preview** deployments can't call the API, because the server only allows the one `CLIENT_ORIGIN`.
 
 **Before going live:** set a spending limit in the Anthropic Console as the hard cap on Claude costs. The app's rate limit protects against normal overuse, not against every possible cost.
 

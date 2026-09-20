@@ -32,6 +32,7 @@ React → Express (with a Supabase JWT) → Supabase Postgres (RLS). Express →
 - [docs/architecture.md](docs/architecture.md): diagrams, auth flow, architecture rules
 - [docs/decisions.md](docs/decisions.md): decision records
 - [docs/roadmap.md](docs/roadmap.md): build order
+- [docs/deployment.md](docs/deployment.md): deploying to Vercel, step by step
 
 ## Prerequisites
 

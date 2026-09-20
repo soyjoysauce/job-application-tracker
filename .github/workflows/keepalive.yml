@@ -1,0 +1,39 @@
+name: Supabase keep-alive
+
+# Free Supabase projects pause after about a week without activity. One request a day
+# keeps the project awake. Requires two repository secrets:
+#   SUPABASE_URL       https://<project-ref>.supabase.co
+#   SUPABASE_ANON_KEY  the anon/publishable key (public by design; RLS protects the data)
+on:
+  schedule:
+    # 06:17 UTC daily. An off-the-hour minute avoids GitHub's busiest scheduling slots.
+    - cron: '17 6 * * *'
+  # Lets you run it by hand from the Actions tab.
+  workflow_dispatch:
+
+jobs:
+  ping:
+    name: Query the database
+    runs-on: ubuntu-latest
+    steps:
+      - name: Select one row through the REST API
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_ANON_KEY" ]; then
+            echo "Missing SUPABASE_URL or SUPABASE_ANON_KEY repository secret." >&2
+            exit 1
+          fi
+
+          # Signed out, RLS returns an empty list — but the query still counts as activity.
+          http_status=$(curl -s -o /dev/null -w '%{http_code}' \
+            "$SUPABASE_URL/rest/v1/profiles?select=user_id&limit=1" \
+            -H "apikey: $SUPABASE_ANON_KEY" \
+            -H "Authorization: Bearer $SUPABASE_ANON_KEY")
+
+          echo "Supabase responded with HTTP $http_status"
+          if [ "$http_status" != "200" ]; then
+            echo "Expected 200. The project may be paused, or the secrets may be wrong." >&2
+            exit 1
+          fi
