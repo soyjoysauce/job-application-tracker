@@ -117,6 +117,7 @@ Conventions:
 - Policies that reference another user-owned table (e.g. `posting_id`) must also check that the referenced row belongs to `auth.uid()`.
 - A deliberate policy exception is documented in `docs/decisions.md`: `usage_counters` is select-only (ADR-006). Don't "fix" it.
 - `shared/` is built by the `client` and `server` build scripts before they build.
+- **Every workspace declares the tools its own scripts run** (e.g. `typescript` in `shared`, `server` and `client`, not only at the root). Vercel installs dependencies scoped to the project being deployed, so a build tool that exists only in the root `devDependencies` is missing at deploy time (`tsc: command not found`). Simulate with `npm install --workspace=@jat/server --include-workspace-root=false` in a clean copy.
 
 ## Commands (repo root)
 

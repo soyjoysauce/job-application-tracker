@@ -90,6 +90,22 @@ GitHub disables scheduled workflows in repositories with no activity for 60 days
 
 ---
 
+## Troubleshooting
+
+**`sh: tsc: command not found` during the build (exit code 127)**
+
+Vercel installs dependencies **scoped to the project being deployed** and its workspace dependencies — the repository root's `devDependencies` are not installed. A build tool that only exists at the root is therefore missing.
+
+Fix: every workspace declares the tools its own scripts use. `typescript` is a `devDependency` of `shared`, `server` and `client`, not only of the root.
+
+Reproduce the same conditions locally before pushing a fix:
+
+```bash
+# in a throwaway copy of the repo, with no node_modules
+npm install --workspace=@jat/server --include-workspace-root=false
+cd server && npm run build
+```
+
 ## Things to know
 
 - **Preview deployments of the client can't reach the API.** Each preview gets its own URL, and the server only allows `CLIENT_ORIGIN`. Either test against production, or set a Preview-scoped `CLIENT_ORIGIN` for the specific preview URL you're working with.
