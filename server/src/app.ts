@@ -3,16 +3,23 @@
 // Do NOT call app.listen() here — local development uses src/local.ts.
 import cors from 'cors';
 import express from 'express';
-// `{ default as helmet }`, not a plain default import: helmet ships separate ESM and
-// CommonJS type declarations, and Vercel's build resolves the CommonJS ones. A plain
-// default import then yields the module object instead of the function
-// ("TS2349: This expression is not callable"). Naming the export works under both.
-import { default as helmet } from 'helmet';
+import type { RequestHandler } from 'express';
+import * as helmetModule from 'helmet';
 
 import { env } from './config/env.js';
 import { errorMiddleware } from './middleware/error.middleware.js';
 import { notFoundMiddleware } from './middleware/notFound.middleware.js';
 import { apiRouter } from './routes/index.js';
+
+/**
+ * helmet ships both ESM and CommonJS type declarations, and different builds resolve
+ * different ones: sometimes `helmet` is the function, sometimes it's the module object
+ * with the function on `.default`. A plain default import fails on Vercel with
+ * "TS2349: This expression is not callable" even though it compiles locally.
+ * Taking whichever of the two is the function works everywhere.
+ */
+const helmet = ((helmetModule as { default?: unknown }).default ??
+  helmetModule) as () => RequestHandler;
 
 const app = express();
 
