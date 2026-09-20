@@ -130,6 +130,7 @@ Database rules:
 
 - Never edit a migration that's already been pushed to the hosted project. Add a new one with `npx supabase migration new <name>`.
 - Every schema change comes with pgTAP tests. `npm run db:test` must pass.
+- After changing any RLS policy, table, or endpoint that touches user data, also run `npm run verify:rls` (needs the API running). It checks isolation through the API **and** through direct Supabase access with the public anon key — an API that filters by `user_id` can hide a broken policy.
 - Never run `supabase db push` or `supabase link` yourself. The owner runs them.
 
 Workspace-specific: `npm run <script> -w @jat/client | @jat/server | @jat/shared`.

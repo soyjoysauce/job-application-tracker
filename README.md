@@ -71,6 +71,15 @@ Schema changes live in `supabase/migrations/` and are applied with the Supabase 
 | `npm run db:stop`  | Stops the local containers                                                                                                                   |
 | `npm run db:types` | Regenerates `server/src/types/database.types.ts` from the local database. Run it after every migration                                       |
 
+**Security check (needs the API running):**
+
+```bash
+eval "$(npx supabase status -o env | sed 's/^/L_/')"
+SUPABASE_URL=$L_API_URL SUPABASE_ANON_KEY=$L_ANON_KEY API_URL=http://localhost:3001 npm run verify:rls
+```
+
+`npm run verify:rls` creates two throwaway users and checks that neither can see or change the other's data — through the API **and** by calling Supabase directly with the public anon key (which any browser can do). It deletes both accounts when it finishes. Run it after any change to RLS policies, tables, or endpoints. Point `API_URL` and `SUPABASE_URL` at a deployed environment to check that one instead.
+
 **Hosted project (one-time link, then push new migrations):**
 
 ```bash

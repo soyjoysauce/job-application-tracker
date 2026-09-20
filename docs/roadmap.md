@@ -77,11 +77,16 @@ Build in this order. Each step should leave the app building, type-checking, and
 - **Still to do in step 8:** mount `rateLimit` on the analyzer route.
 - A user **can't** insert, update, or delete `usage_counters` rows directly (covered by the pgTAP tests from step 1).
 
-## 7. RLS verification with two users
+## 7. RLS verification with two users ✅
 
-- The SQL-level checks already exist (`npm run db:test`). This step verifies the same guarantees end to end.
-- With two test accounts, confirm user A can't read, update, or delete user B's rows, both through the API and directly through the Supabase REST API with the anon key.
-- Confirm a user can't attach an application to another user's posting.
+- `npm run verify:rls` (`scripts/verify-rls.ts`) creates two throwaway users, attacks one from the other, and deletes both accounts afterwards. 26 checks in four groups:
+  1. **Through the API:** B gets 404 reading, updating, deleting, or attaching an application to A's things; B's profile and list stay empty; sending `userId` in a body is rejected with 400.
+  2. **Bypassing the API** (direct Supabase REST with the public anon key + B's real token): selects return none of A's rows; updates and deletes affect 0 rows; inserting a row owned by A, or attaching to A's posting, is refused by RLS; B cannot read A's counter, nor reset, delete, or insert their own (ADR-006).
+  3. **Signed out:** the anon key alone returns no rows, can't call `increment_usage()`, and the API returns 401.
+  4. **A's data is unchanged** after every attempt.
+- **The verifier was itself verified:** adding a deliberately permissive `select` policy to the local database made check 2 fail, exposing every user's postings.
+- **Worth knowing:** with that leaky policy, the **API checks still passed**, because the services also filter by `user_id`. Only the direct-REST checks caught it. That's why this step tests both paths — and why policy changes must always be re-verified with `npm run verify:rls`, not just through the UI.
+- Run it against a deployed environment by pointing `API_URL` and `SUPABASE_URL` at it.
 
 ## 8. Claude posting analyzer
 
